@@ -43,6 +43,7 @@ export const refreshVideoCache = async (
 export const useProject = (projectId: string) => {
   return useQuery({
     queryKey: queryKeys.project(projectId),
+    enabled: !!projectId,
     queryFn: async () =>
       (await db.projects.find(projectId)) ?? PROJECT_PLACEHOLDER,
   });
@@ -59,6 +60,7 @@ export const useProjectMediaItems = (projectId: string) => {
   return useQuery({
     queryKey: queryKeys.projectMediaItems(projectId),
     queryFn: () => db.media.mediaByProject(projectId),
+    enabled: !!projectId,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
     placeholderData: keepPreviousData,
@@ -80,7 +82,9 @@ export const EMPTY_VIDEO_COMPOSITION: VideoCompositionData = {
 export const useVideoComposition = (projectId: string) =>
   useQuery({
     queryKey: queryKeys.projectPreview(projectId),
+    enabled: !!projectId,
     queryFn: async () => {
+      if (!projectId) return EMPTY_VIDEO_COMPOSITION;
       const tracks = await db.tracks.tracksByProject(projectId);
       const frames = (
         await Promise.all(

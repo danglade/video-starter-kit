@@ -441,8 +441,65 @@ const TEMPLATE_PROJECT_SEED: ProjectSeed = {
 };
 
 export const seedDatabase = async () => {
-  await db.projects.create(TEMPLATE_PROJECT_SEED.project);
-  await Promise.all(TEMPLATE_PROJECT_SEED.media.map(db.media.create));
-  await Promise.all(TEMPLATE_PROJECT_SEED.tracks.map(db.tracks.create));
-  await Promise.all(TEMPLATE_PROJECT_SEED.keyframes.map(db.keyFrames.create));
+  // Extract project data without the hardcoded ID
+  const { id: _, ...projectWithoutId } = TEMPLATE_PROJECT_SEED.project;
+  const projectId = await db.projects.create(projectWithoutId);
+  
+  // Update media items with the new project ID
+  const mediaWithProjectId = TEMPLATE_PROJECT_SEED.media.map(m => ({
+    ...m,
+    projectId
+  }));
+  
+  // Create media items and collect their new IDs
+  const mediaIdMap = new Map<string, string>();
+  for (const media of mediaWithProjectId) {
+    const oldId = media.id;
+    const { id: _, ...mediaWithoutId } = media;
+    const newId = await db.media.create(mediaWithoutId);
+    mediaIdMap.set(oldId, newId);
+  }
+  
+  // Update tracks with the new project ID
+  const tracksWithProjectId = TEMPLATE_PROJECT_SEED.tracks.map(t => ({
+    ...t,
+    projectId
+  }));
+  
+  // Create tracks and collect their new IDs
+  const trackIdMap = new Map<string, string>();
+  for (const track of tracksWithProjectId) {
+    const oldId = track.id;
+    const { id: _, ...trackWithoutId } = track;
+    const newId = await db.tracks.create(trackWithoutId);
+    trackIdMap.set(oldId, newId);
+  }
+  
+  // Update keyframes with new track IDs and media IDs
+  const keyframesWithNewIds = TEMPLATE_PROJECT_SEED.keyframes.map(kf => {
+    const newTrackId = trackIdMap.get(kf.trackId);
+    if (!newTrackId) throw new Error(`Track ID ${kf.trackId} not found in map`);
+    
+    // Update media ID in data if present
+    const data = { ...kf.data };
+    if ('mediaId' in data && data.mediaId) {
+      const newMediaId = mediaIdMap.get(data.mediaId);
+      if (!newMediaId) throw new Error(`Media ID ${data.mediaId} not found in map`);
+      data.mediaId = newMediaId;
+    }
+    
+    return {
+      ...kf,
+      trackId: newTrackId,
+      data
+    };
+  });
+  
+  // Create keyframes
+  for (const keyframe of keyframesWithNewIds) {
+    const { id: _, ...keyframeWithoutId } = keyframe;
+    await db.keyFrames.create(keyframeWithoutId);
+  }
+  
+  return projectId;
 };

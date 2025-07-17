@@ -24,9 +24,12 @@ export default function BottomBar() {
     playerCurrentTimestamp.toFixed(2);
   const minTrackWidth = `${((2 / 30) * 100).toFixed(2)}%`;
   const [dragOverTracks, setDragOverTracks] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   const limitAllKeyframesToThirtySeconds = useMutation({
     mutationFn: async () => {
+      if (!projectId) return 0;
+      
       const tracks = await db.tracks.tracksByProject(projectId);
 
       let updatedCount = 0;
@@ -36,10 +39,15 @@ export default function BottomBar() {
 
         for (const frame of keyframes) {
           if (frame.duration > 30000) {
-            await db.keyFrames.update(frame.id, {
-              duration: 30000,
-            });
-            updatedCount++;
+            try {
+              await db.keyFrames.update(frame.id, {
+                duration: 30000,
+              });
+              updatedCount++;
+            } catch (error) {
+              console.warn(`Failed to update keyframe ${frame.id}:`, error);
+              // Continue with other keyframes even if one fails
+            }
           }
         }
       }
@@ -47,28 +55,40 @@ export default function BottomBar() {
       return updatedCount;
     },
     onSuccess: (updatedCount) => {
-      if (updatedCount > 0) {
+      if (updatedCount > 0 && projectId) {
         refreshVideoCache(queryClient, projectId);
       }
+    },
+    onError: (error) => {
+      console.error('Error limiting keyframes:', error);
     },
   });
 
   const { data: tracks = [] } = useQuery({
-    queryKey: queryKeys.projectTracks(projectId),
+    queryKey: projectId ? queryKeys.projectTracks(projectId) : ['no-project'],
     queryFn: async () => {
+      if (!projectId) return [];
       const result = await db.tracks.tracksByProject(projectId);
       return result.toSorted(
         (a, b) => TRACK_TYPE_ORDER[a.type] - TRACK_TYPE_ORDER[b.type],
       );
     },
+    enabled: !!projectId,
   });
 
   // Automatically limit keyframes to 30 seconds whenever tracks change
   useEffect(() => {
-    if (tracks.length > 0) {
+    if (tracks.length > 0 && hasInitialized) {
       limitAllKeyframesToThirtySeconds.mutate();
     }
   }, [tracks]);
+
+  // Mark as initialized after first render with tracks
+  useEffect(() => {
+    if (tracks.length > 0 && !hasInitialized) {
+      setHasInitialized(true);
+    }
+  }, [tracks, hasInitialized]);
 
   const handleOnDragOver: DragEventHandler<HTMLDivElement> = (event) => {
     event.preventDefault();
@@ -81,12 +101,16 @@ export default function BottomBar() {
 
   const addToTrack = useMutation({
     mutationFn: async (media: MediaItem) => {
-      const tracks = await db.tracks.tracksByProject(media.projectId);
+      if (!projectId) return null;
+      
+      // Use current projectId instead of media.projectId
+      const currentProjectId = projectId || media.projectId;
+      const tracks = await db.tracks.tracksByProject(currentProjectId);
       const trackType = media.mediaType === "image" ? "video" : media.mediaType;
       let track = tracks.find((t) => t.type === trackType);
       if (!track) {
         const id = await db.tracks.create({
-          projectId: media.projectId,
+          projectId: currentProjectId,
           type: trackType,
           label: media.mediaType,
           locked: true,
@@ -127,7 +151,7 @@ export default function BottomBar() {
       return db.keyFrames.find(newId.toString());
     },
     onSuccess: (data) => {
-      if (!data) return;
+      if (!data || !projectId) return;
       refreshVideoCache(queryClient, projectId);
     },
   });
@@ -171,11 +195,26 @@ export default function BottomBar() {
     event.preventDefault();
     setDragOverTracks(false);
     const jobPayload = event.dataTransfer.getData("job");
-    if (!jobPayload) return false;
+    if (!jobPayload) {
+      console.error('No job payload in drag data');
+      return false;
+    }
     const job: MediaItem = JSON.parse(jobPayload);
+    console.log('Dropping media:', job, 'Current projectId:', projectId);
+    
+    if (!projectId) {
+      console.error('Cannot drop media: No project ID available');
+      return false;
+    }
+    
     addToTrack.mutate(job);
     return true;
   };
+
+  // Don't render if no project ID
+  if (!projectId) {
+    return null;
+  }
 
   return (
     <div className="border-t pb-2 border-border flex flex-col bg-background-light ">

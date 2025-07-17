@@ -26,7 +26,7 @@ import { Separator } from "./ui/separator";
 import { Skeleton } from "./ui/skeleton";
 import { Textarea } from "./ui/textarea";
 import { WithTooltip } from "./ui/tooltip";
-import { seedDatabase } from "@/data/seed";
+
 
 type ProjectDialogProps = {} & Parameters<typeof Dialog>[0];
 
@@ -40,14 +40,7 @@ export function ProjectDialog({ onOpenChange, ...props }: ProjectDialogProps) {
   // Fetch existing projects
   const { data: projects = [], isLoading } = useProjects();
 
-  // Seed data with template project if empty
-  useEffect(() => {
-    if (projects.length === 0 && !isLoading) {
-      seedDatabase().then(() => {
-        queryClient.invalidateQueries({ queryKey: queryKeys.projects });
-      });
-    }
-  }, [projects, isLoading]);
+  // No automatic seeding - let user create their first project
 
   // Create project mutation
   const setProjectId = useVideoProjectStore((s) => s.setProjectId);
