@@ -70,17 +70,37 @@ export async function POST(
       };
       
       // Get the webhook URL from environment or construct it
-      const webhookUrl = process.env.NEXT_PUBLIC_APP_URL 
-        ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/fal?character_id=${params.id}`
-        : undefined;
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL;
+      let webhookUrl: string | undefined;
       
-      console.log('Submitting training job with webhook:', webhookUrl);
+      if (appUrl) {
+        // Ensure the URL has a protocol
+        const baseUrl = appUrl.startsWith('http://') || appUrl.startsWith('https://') 
+          ? appUrl 
+          : `https://${appUrl}`;
+        
+        // Remove trailing slash if present
+        const cleanUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+        webhookUrl = `${cleanUrl}/api/webhooks/fal?character_id=${params.id}`;
+      }
+      
+      console.log('Webhook URL construction:', {
+        NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+        VERCEL_URL: process.env.VERCEL_URL,
+        finalWebhookUrl: webhookUrl
+      });
       
       // Submit training job to fal.ai
-      const result = await falServer.queue.submit(TRAINING_CONFIG.TRAINING_MODEL, {
+      const submitOptions: any = {
         input: trainingData,
-        webhookUrl,
-      });
+      };
+      
+      // Add webhook URL if available
+      if (webhookUrl) {
+        submitOptions.webhookUrl = webhookUrl;
+      }
+      
+      const result = await falServer.queue.submit(TRAINING_CONFIG.TRAINING_MODEL, submitOptions);
       
       console.log('Training job submitted:', result.request_id);
       
