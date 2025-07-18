@@ -108,7 +108,7 @@ async function handleLoraTraining(body: any) {
         where: { id: character.id },
         data: {
           trainingStatus: "completed",
-          loraModelUrl: output.diffusers_lora_file.url,
+          loraUrl: output.diffusers_lora_file.url,
           thumbnailUrl,
           trainingError: null,
         },
@@ -118,14 +118,14 @@ async function handleLoraTraining(body: any) {
     } catch (error) {
       console.error("Error generating thumbnail:", error);
       // Still mark as completed even if thumbnail fails
-      await prisma.character.update({
-        where: { id: character.id },
-        data: {
-          trainingStatus: "completed",
-          loraModelUrl: output.diffusers_lora_file.url,
-          trainingError: null,
-        },
-      });
+              await prisma.character.update({
+          where: { id: character.id },
+          data: {
+            trainingStatus: "completed",
+            loraUrl: output.diffusers_lora_file.url,
+            trainingError: null,
+          },
+        });
     }
   } else if (status === "failed") {
     // Update character with error status
