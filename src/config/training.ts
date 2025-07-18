@@ -10,10 +10,10 @@ export const TRAINING_CONFIG = {
   MIN_STEPS: 500,
   MAX_STEPS: 4000,
   
-  // Default trigger word prefix (will be combined with character name)
-  TRIGGER_WORD_PREFIX: '', // Empty by default, could be 'a photo of' or similar
+  // Default trigger word prefix (not used anymore - keeping for backwards compatibility)
+  TRIGGER_WORD_PREFIX: '',
   
-  // Whether to use underscores in trigger words (john_doe vs john doe)
+  // Whether to use underscores in trigger words (not used anymore - keeping for backwards compatibility)
   USE_UNDERSCORES_IN_TRIGGER: true,
   
   // Training model endpoint
@@ -36,12 +36,6 @@ export const TRAINING_CONFIG = {
  * Generate a trigger word from a character name
  */
 export function generateTriggerWord(characterName: string): string {
-  const normalized = characterName.toLowerCase().trim();
-  const withPrefix = TRAINING_CONFIG.TRIGGER_WORD_PREFIX 
-    ? `${TRAINING_CONFIG.TRIGGER_WORD_PREFIX} ${normalized}`
-    : normalized;
-  
-  return TRAINING_CONFIG.USE_UNDERSCORES_IN_TRIGGER 
-    ? withPrefix.replace(/\s+/g, '_')
-    : withPrefix;
+  // Always return the literal string "character_name" as the trigger word
+  return "character_name";
 } 
