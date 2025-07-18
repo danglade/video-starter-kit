@@ -3,15 +3,27 @@ let prisma: any;
 
 if (process.env.NODE_ENV === 'production' && !process.env.BUILDING) {
   // Only import Prisma in production runtime, not during build
-  PrismaClient = require('@prisma/client').PrismaClient;
-  
-  const globalForPrisma = globalThis as unknown as {
-    prisma: any | undefined
+  try {
+    PrismaClient = require('@prisma/client').PrismaClient;
+    
+    const globalForPrisma = globalThis as unknown as {
+      prisma: any | undefined
+    }
+    
+    prisma = globalForPrisma.prisma ?? new PrismaClient({
+      log: ['error', 'warn'],
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL
+        }
+      }
+    });
+    
+    globalForPrisma.prisma = prisma;
+  } catch (e) {
+    console.error('Failed to initialize Prisma Client in production:', e);
+    throw new Error(`Prisma initialization failed: ${e instanceof Error ? e.message : 'Unknown error'}`);
   }
-  
-  prisma = globalForPrisma.prisma ?? new PrismaClient();
-  
-  globalForPrisma.prisma = prisma;
 } else if (process.env.NODE_ENV !== 'production') {
   // Development mode
   try {

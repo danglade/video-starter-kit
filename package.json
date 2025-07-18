@@ -14,7 +14,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:test": "tsx scripts/test-db.ts"
+    "db:test": "tsx scripts/test-db.ts",
+    "postinstall": "prisma generate || echo 'Prisma generation failed, but continuing...'"
   },
   "dependencies": {
     "@fal-ai/client": "^1.2.1",
