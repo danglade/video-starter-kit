@@ -80,7 +80,7 @@ export function resolveMediaUrl(item: MediaItem | undefined): string | null {
   if (!item) return null;
 
   if (item.kind === "uploaded") {
-    return item.url;
+    return item.url ?? null;
   }
   const data = item.output;
   if (!data) return null;
