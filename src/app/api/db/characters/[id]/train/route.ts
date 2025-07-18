@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server'
 import { serverDb } from '@/data/db-server'
 import { falServer } from '@/lib/fal-server'

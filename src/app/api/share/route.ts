@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { IS_SHARE_ENABLED, shareVideo, ShareVideoParams } from "@/lib/share";
 import { NextRequest, NextResponse } from "next/server";
 

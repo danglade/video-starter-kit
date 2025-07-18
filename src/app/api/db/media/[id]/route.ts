@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server'
 import { serverDb } from '@/data/db-server'
 import type { MediaItem } from '@/data/schema'
