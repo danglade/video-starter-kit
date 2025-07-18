@@ -47,6 +47,8 @@ export function MediaItemRow({
     queryKey: queryKeys.projectMedia(projectId, data.id),
     queryFn: async () => {
       if (data.kind === "uploaded") return null;
+      if (!data.endpointId || !data.requestId) return null;
+      
       const queueStatus = await fal.queue.status(data.endpointId, {
         requestId: data.requestId,
       });
@@ -63,8 +65,8 @@ export function MediaItemRow({
 
       if (queueStatus.status === "COMPLETED") {
         try {
-          const result = await fal.queue.result(data.endpointId, {
-            requestId: data.requestId,
+          const result = await fal.queue.result(data.endpointId!, {
+            requestId: data.requestId!,
           });
           media = {
             ...data,
@@ -109,7 +111,7 @@ export function MediaItemRow({
 
       return null;
     },
-    enabled: !isDone && data.kind === "generated",
+    enabled: !isDone && data.kind === "generated" && !!data.endpointId && !!data.requestId,
     refetchInterval: data.mediaType === "video" ? 20000 : 1000,
   });
   const mediaUrl = resolveMediaUrl(data) ?? "";
