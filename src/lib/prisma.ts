@@ -1,12 +1,49 @@
-import { PrismaClient } from '@prisma/client'
+let PrismaClient: any;
+let prisma: any;
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
+if (process.env.NODE_ENV === 'production' && !process.env.BUILDING) {
+  // Only import Prisma in production runtime, not during build
+  PrismaClient = require('@prisma/client').PrismaClient;
+  
+  const globalForPrisma = globalThis as unknown as {
+    prisma: any | undefined
+  }
+  
+  prisma = globalForPrisma.prisma ?? new PrismaClient();
+  
+  globalForPrisma.prisma = prisma;
+} else if (process.env.NODE_ENV !== 'production') {
+  // Development mode
+  try {
+    PrismaClient = require('@prisma/client').PrismaClient;
+    
+    const globalForPrisma = globalThis as unknown as {
+      prisma: any | undefined
+    }
+    
+    prisma = globalForPrisma.prisma ?? new PrismaClient();
+    globalForPrisma.prisma = prisma;
+  } catch (e) {
+    console.warn('Prisma Client not generated. Run "prisma generate" to fix this.');
+    // Create a mock for build time
+    prisma = new Proxy({}, {
+      get() {
+        throw new Error('Prisma Client not available during build');
+      }
+    });
+  }
+} else {
+  // Build time - create a mock
+  prisma = new Proxy({}, {
+    get() {
+      return () => {
+        throw new Error('Database operations not available during build');
+      };
+    }
+  });
 }
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient()
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+export { prisma }
 
 // Helper to get current user ID (temporary solution before auth)
 export function getCurrentUserId(): string {
