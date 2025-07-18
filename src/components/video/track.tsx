@@ -112,7 +112,7 @@ function AudioWaveform({ data }: AudioWaveformProps) {
           preserveAspectRatio="xMinYMid meet"
         >
           <title>Audio Waveform</title>
-          {waveform.map((v, index) => {
+          {waveform.map((v: number, index: number) => {
             const amplitude = Math.abs(v);
             const height = Math.max(amplitude * svgHeight, 2);
             const x = index * 3;
