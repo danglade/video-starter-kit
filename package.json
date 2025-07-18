@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/prisma-generate.js && next build",
+    "build": "node scripts/vercel-build.js",
+    "build:local": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "format": "biome format --write",
