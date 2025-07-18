@@ -10,18 +10,23 @@ export async function POST(request: NextRequest) {
     console.log("FAL webhook received:", body);
 
     // Extract event type from the body
-    // FAL webhooks include the model in the body
+    // Check various fields to determine the webhook type
     const model = body.model || "";
-    const logs = body.logs || [];
+    const hasLoraFile = body.payload?.diffusers_lora_file || body.output?.diffusers_lora_file;
+    const requestId = body.request_id || body.requestId;
     
-    // Check logs for model information if not in model field
-    const logModel = logs.find((log: any) => log.message?.includes("model"))?.message || "";
-    
-    console.log("Webhook model:", model, "Log model:", logModel);
+    console.log("Webhook detection:", {
+      model,
+      hasLoraFile: !!hasLoraFile,
+      requestId,
+      status: body.status,
+      hasPayload: !!body.payload
+    });
 
-    // Route based on event type
-    if (model.includes("flux-lora-fast-training") || model.includes("lora") || logModel.includes("lora")) {
-      // LoRA training completion
+    // Route based on webhook content
+    if (hasLoraFile || model.includes("lora") || model.includes("flux-lora-fast-training")) {
+      // LoRA training completion - detected by presence of diffusers_lora_file
+      console.log("Routing to LoRA training handler");
       return handleLoraTraining(body);
     } else if (model.includes("runway") || model.includes("video")) {
       // Video generation completion
@@ -30,8 +35,8 @@ export async function POST(request: NextRequest) {
       // Image generation completion
       return handleImageGeneration(body);
     } else {
-      console.warn("Unknown webhook event type:", model);
-      return NextResponse.json({ received: true, model });
+      console.warn("Unknown webhook event type:", { model, body: JSON.stringify(body) });
+      return NextResponse.json({ received: true, model, body });
     }
   } catch (error) {
     console.error("Webhook error:", error);
@@ -43,7 +48,12 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleLoraTraining(body: any) {
-  const { request_id, status, output } = body;
+  // Handle different webhook payload structures
+  const request_id = body.request_id || body.requestId;
+  const status = body.status === 'OK' ? 'completed' : (body.status || 'unknown');
+  const output = body.payload || body.output || {};
+
+  console.log("LoRA training handler:", { request_id, status, hasOutput: !!output });
 
   if (!request_id) {
     return NextResponse.json(
