@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { fal } from "@/lib/fal";
 import { db } from "@/data/db";
+import { queryKeys } from "@/data/queries";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,7 @@ interface CharacterDialogProps {
 
 export function CharacterDialog({ open, onOpenChange, projectId }: CharacterDialogProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -89,11 +91,18 @@ export function CharacterDialog({ open, onOpenChange, projectId }: CharacterDial
         setIsUploading(false);
       }
     },
-    onSuccess: (characterId) => {
+    onSuccess: async (characterId) => {
       toast({
         title: "Character created",
         description: "Training has started. This may take a few minutes.",
       });
+      
+      // Invalidate characters query to refresh the list
+      if (projectId) {
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.projectCharacters(projectId),
+        });
+      }
       
       // Reset form
       setName("");
@@ -102,9 +111,6 @@ export function CharacterDialog({ open, onOpenChange, projectId }: CharacterDial
       setPreviews([]);
       setTrainingSteps(TRAINING_CONFIG.DEFAULT_STEPS);
       onOpenChange(false);
-      
-      // Refresh the page to show the new character
-      router.refresh();
     },
     onError: (error) => {
       toast({
