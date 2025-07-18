@@ -48,7 +48,7 @@ export const serverDb = {
         orderBy: { createdAt: 'desc' }
       })
       
-      return projects.map((p) => ({
+      return projects.map((p: any) => ({
         id: p.id,
         title: p.title,
         description: p.description,
@@ -114,7 +114,7 @@ export const serverDb = {
         orderBy: { order: 'asc' }
       })
       
-      return tracks.map((t) => ({
+      return tracks.map((t: any) => ({
         id: t.id,
         locked: t.locked,
         label: t.label,
@@ -181,7 +181,7 @@ export const serverDb = {
         orderBy: { timestamp: 'asc' }
       })
       
-      return keyFrames.map((kf) => ({
+      return keyFrames.map((kf: any) => ({
         id: kf.id,
         timestamp: kf.timestamp,
         duration: kf.duration,
@@ -303,7 +303,7 @@ export const serverDb = {
         orderBy: { createdAt: 'desc' }
       })
       
-      return mediaItems.map((media) => {
+      return mediaItems.map((media: any) => {
         if (media.kind === 'generated') {
           return {
             id: media.id,
