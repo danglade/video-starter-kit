@@ -30,7 +30,7 @@ type VideoTrackRowProps = {
 
 export function VideoTrackRow({ data, ...props }: VideoTrackRowProps) {
   const { data: keyframes = [] } = useQuery({
-    queryKey: ["frames", data],
+    queryKey: ["frames", data.id],
     queryFn: () => db.keyFrames.keyFramesByTrack(data.id),
   });
 
@@ -150,7 +150,42 @@ export function VideoTrackView({
   const queryClient = useQueryClient();
   const deleteKeyframe = useMutation({
     mutationFn: () => db.keyFrames.delete(frame.id),
-    onSuccess: () => refreshVideoCache(queryClient, track.projectId),
+    onMutate: async () => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["frames", track.id] });
+      
+      // Get current keyframes
+      const previousKeyframes = queryClient.getQueryData<VideoKeyFrame[]>(
+        ["frames", track.id]
+      ) || [];
+      
+      // Optimistically remove the keyframe
+      queryClient.setQueryData(
+        ["frames", track.id],
+        previousKeyframes.filter(kf => kf.id !== frame.id)
+      );
+      
+      // Return context for rollback
+      return { previousKeyframes };
+    },
+    onError: (err, variables, context) => {
+      // Roll back on error
+      if (context?.previousKeyframes) {
+        queryClient.setQueryData(
+          ["frames", track.id],
+          context.previousKeyframes
+        );
+      }
+      console.error('Failed to delete keyframe:', err);
+    },
+    onSuccess: () => {
+      // Refresh to ensure consistency
+      refreshVideoCache(queryClient, track.projectId);
+    },
+    onSettled: () => {
+      // Always refetch to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ["frames", track.id] });
+    },
   });
   const handleOnDelete = () => {
     deleteKeyframe.mutate();

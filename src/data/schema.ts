@@ -68,27 +68,31 @@ export type KeyFrameData = {
 
 export type MediaItem = {
   id: string;
+  projectId: string;
+  createdAt: number;
+  mediaType: "image" | "video" | "music" | "voiceover";
   kind: "generated" | "uploaded";
   endpointId?: string;
   requestId?: string;
-  projectId: string;
-  mediaType: "image" | "video" | "music" | "voiceover";
   status: "pending" | "running" | "completed" | "failed";
-  createdAt: number;
-  input?: Record<string, any>;
-  output?: Record<string, any>;
+  input?: any;
+  output?: any;
   url?: string;
-  metadata?: Record<string, any>; // TODO: Define the metadata schema
-} & (
-  | {
-      kind: "generated";
-      endpointId: string;
-      requestId: string;
-      input: Record<string, any>;
-      output?: Record<string, any>;
-    }
-  | {
-      kind: "uploaded";
-      url: string;
-    }
-);
+  metadata?: any;
+};
+
+export type Character = {
+  id: string;
+  userId: string;
+  projectId?: string | null;
+  name: string;
+  description?: string | null;
+  loraUrl?: string | null;
+  thumbnailUrl?: string | null;
+  trainingStatus: 'pending' | 'uploading' | 'training' | 'completed' | 'failed';
+  trainingJobId?: string | null;
+  trainingImages?: string[] | null;
+  trainingError?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};

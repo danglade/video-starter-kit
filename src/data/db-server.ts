@@ -5,6 +5,7 @@ import type {
   VideoKeyFrame,
   VideoProject,
   VideoTrack,
+  Character,
 } from "./schema"
 
 // Helper to get the actual database user ID from the temp ID
@@ -387,38 +388,132 @@ export const serverDb = {
     
     async delete(id: string) {
       const userId = await getUserId()
-      const media = await prisma.mediaItem.findFirst({
-        where: { id, userId }
+      
+      // Verify ownership
+      const media = await prisma.mediaItem.findUnique({
+        where: { id },
+        include: { project: true }
       })
       
-      if (!media) throw new Error('Media not found or unauthorized')
+      if (!media || media.project.userId !== userId) {
+        throw new Error('Media item not found or unauthorized')
+      }
       
-      // Delete associated keyframes
-      const tracks = await prisma.track.findMany({
-        where: { projectId: media.projectId }
-      })
-      
-      const trackIds = tracks.map((t) => t.id)
-      
-      // Find keyframes that reference this media
-      const keyFrames = await prisma.keyFrame.findMany({
-        where: { trackId: { in: trackIds } }
-      })
-      
-      const keyFramesToDelete = keyFrames.filter((kf) => {
-        const data = kf.data as any
-        return data.mediaId === id
-      })
-      
-      // Delete keyframes in a transaction
-      await prisma.$transaction([
-        ...keyFramesToDelete.map((kf) => 
-          prisma.keyFrame.delete({ where: { id: kf.id } })
-        ),
-        prisma.mediaItem.delete({ where: { id } })
-      ])
-      
+      await prisma.mediaItem.delete({ where: { id } })
       return id
     }
   },
+  
+  characters: {
+    async all() {
+      const userId = await getUserId()
+      return prisma.character.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' }
+      })
+    },
+    
+    async byProject(projectId: string) {
+      const userId = await getUserId()
+      
+      // Verify project ownership
+      const project = await prisma.project.findUnique({
+        where: { id: projectId }
+      })
+      
+      if (!project || project.userId !== userId) {
+        throw new Error('Project not found or unauthorized')
+      }
+      
+      // Get both project-specific and user-global characters
+      return prisma.character.findMany({
+        where: {
+          userId,
+          OR: [
+            { projectId },
+            { projectId: null }
+          ]
+        },
+        orderBy: { createdAt: 'desc' }
+      })
+    },
+    
+    async find(id: string): Promise<Character | null> {
+      const userId = await getUserId()
+      
+      const character = await prisma.character.findUnique({
+        where: { id }
+      })
+      
+      if (!character || character.userId !== userId) {
+        return null
+      }
+      
+      return character as Character
+    },
+    
+    async create(character: Omit<Character, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) {
+      const userId = await getUserId()
+      
+      // If projectId is provided, verify ownership
+      if (character.projectId) {
+        const project = await prisma.project.findUnique({
+          where: { id: character.projectId }
+        })
+        
+        if (!project || project.userId !== userId) {
+          throw new Error('Project not found or unauthorized')
+        }
+      }
+      
+      const created = await prisma.character.create({
+        data: {
+          ...character,
+          userId,
+          trainingImages: character.trainingImages as any
+        }
+      })
+      
+      return created.id
+    },
+    
+    async update(id: string, character: Partial<Character>) {
+      const userId = await getUserId()
+      
+      // Verify ownership
+      const existing = await prisma.character.findUnique({
+        where: { id }
+      })
+      
+      if (!existing || existing.userId !== userId) {
+        throw new Error('Character not found or unauthorized')
+      }
+      
+      await prisma.character.update({
+        where: { id },
+        data: {
+          ...character,
+          trainingImages: character.trainingImages as any
+        }
+      })
+      
+      return id
+    },
+    
+    async delete(id: string) {
+      const userId = await getUserId()
+      
+      // Verify ownership
+      const character = await prisma.character.findUnique({
+        where: { id }
+      })
+      
+      if (!character || character.userId !== userId) {
+        throw new Error('Character not found or unauthorized')
+      }
+      
+      await prisma.character.delete({ where: { id } })
+      return id
+    }
+  }
 } as const 

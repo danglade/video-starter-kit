@@ -22,6 +22,9 @@ export const queryKeys = {
   ],
   projectTracks: (projectId: string) => ["tracks", projectId],
   projectPreview: (projectId: string) => ["preview", projectId],
+  characters: ["characters"],
+  character: (characterId: string) => ["character", characterId],
+  projectCharacters: (projectId: string) => ["characters", projectId],
 };
 
 export const refreshVideoCache = async (
@@ -37,6 +40,7 @@ export const refreshVideoCache = async (
     }),
     queryClient.invalidateQueries({
       queryKey: ["frames"],
+      exact: false, // This will invalidate all queries starting with ["frames"]
     }),
   ]);
 
@@ -106,3 +110,26 @@ export const useVideoComposition = (projectId: string) =>
       } satisfies VideoCompositionData;
     },
   });
+
+export const useCharacters = () => {
+  return useQuery({
+    queryKey: queryKeys.characters,
+    queryFn: async () => db.characters.all(),
+  });
+};
+
+export const useProjectCharacters = (projectId: string) => {
+  return useQuery({
+    queryKey: queryKeys.projectCharacters(projectId),
+    enabled: !!projectId,
+    queryFn: async () => db.characters.byProject(projectId),
+  });
+};
+
+export const useCharacter = (characterId: string) => {
+  return useQuery({
+    queryKey: queryKeys.character(characterId),
+    enabled: !!characterId,
+    queryFn: async () => db.characters.find(characterId),
+  });
+};

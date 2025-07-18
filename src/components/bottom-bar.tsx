@@ -3,6 +3,7 @@ import {
   TRACK_TYPE_ORDER,
   type MediaItem,
   type VideoTrack,
+  type VideoKeyFrame,
 } from "@/data/schema";
 import { useProjectId, useVideoProjectStore } from "@/data/store";
 import { cn, resolveDuration } from "@/lib/utils";
@@ -24,7 +25,6 @@ export default function BottomBar() {
     playerCurrentTimestamp.toFixed(2);
   const minTrackWidth = `${((2 / 30) * 100).toFixed(2)}%`;
   const [dragOverTracks, setDragOverTracks] = useState(false);
-  const [hasInitialized, setHasInitialized] = useState(false);
 
   const limitAllKeyframesToThirtySeconds = useMutation({
     mutationFn: async () => {
@@ -76,20 +76,6 @@ export default function BottomBar() {
     enabled: !!projectId,
   });
 
-  // Automatically limit keyframes to 30 seconds whenever tracks change
-  useEffect(() => {
-    if (tracks.length > 0 && hasInitialized) {
-      limitAllKeyframesToThirtySeconds.mutate();
-    }
-  }, [tracks]);
-
-  // Mark as initialized after first render with tracks
-  useEffect(() => {
-    if (tracks.length > 0 && !hasInitialized) {
-      setHasInitialized(true);
-    }
-  }, [tracks, hasInitialized]);
-
   const handleOnDragOver: DragEventHandler<HTMLDivElement> = (event) => {
     event.preventDefault();
     setDragOverTracks(true);
@@ -116,7 +102,7 @@ export default function BottomBar() {
           locked: true,
         });
         const newTrack = await db.tracks.find(id.toString());
-        if (!newTrack) return;
+        if (!newTrack) return null;
         track = newTrack;
       }
       const keyframes = await db.keyFrames.keyFramesByTrack(track.id);
@@ -148,11 +134,131 @@ export default function BottomBar() {
           : 0,
         duration,
       });
-      return db.keyFrames.find(newId.toString());
+      return { keyframeId: newId, trackId: track.id };
     },
-    onSuccess: (data) => {
-      if (!data || !projectId) return;
+    onMutate: async (media: MediaItem) => {
+      if (!projectId) return;
+      
+      // Cancel any outgoing refetches to prevent overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ["frames"] });
+      
+      // Determine which track this will go to
+      const tracks = await db.tracks.tracksByProject(projectId);
+      const trackType = media.mediaType === "image" ? "video" : media.mediaType;
+      let track = tracks.find((t) => t.type === trackType);
+      
+      // If no track exists yet, we'll create one optimistically
+      if (!track) {
+        track = {
+          id: `temp-track-${Date.now()}`,
+          projectId,
+          type: trackType,
+          label: media.mediaType,
+          locked: true,
+        } as VideoTrack;
+        
+        // Optimistically add the track
+        queryClient.setQueryData(
+          queryKeys.projectTracks(projectId),
+          (old: VideoTrack[] = []) => [...old, track!]
+        );
+      }
+      
+      // Get current keyframes for the track
+      const previousKeyframes = queryClient.getQueryData<VideoKeyFrame[]>(
+        ["frames", track.id]
+      ) || [];
+      
+      // Calculate position for new keyframe
+      const lastKeyframe = [...previousKeyframes]
+        .sort((a, b) => a.timestamp - b.timestamp)
+        .reduce(
+          (acc, frame) => {
+            if (frame.timestamp + frame.duration > acc.timestamp + acc.duration)
+              return frame;
+            return acc;
+          },
+          { timestamp: 0, duration: 0 },
+        );
+      
+      const mediaDuration = resolveDuration(media) ?? 5000;
+      const duration = Math.min(mediaDuration, 30000);
+      
+      // Create optimistic keyframe
+      const optimisticKeyframe: VideoKeyFrame = {
+        id: `temp-keyframe-${Date.now()}`,
+        trackId: track.id,
+        data: {
+          mediaId: media.id,
+          type: media.input?.image_url ? "image" : "prompt",
+          prompt: media.input?.prompt || "",
+          url: media.input?.image_url?.url,
+        },
+        timestamp: lastKeyframe
+          ? lastKeyframe.timestamp + 1 + lastKeyframe.duration
+          : 0,
+        duration,
+      };
+      
+      // Optimistically add the keyframe
+      queryClient.setQueryData(
+        ["frames", track.id],
+        [...previousKeyframes, optimisticKeyframe]
+      );
+      
+      // Return context for potential rollback
+      return {
+        previousKeyframes,
+        trackId: track.id,
+        previousTracks: tracks,
+        optimisticKeyframe,
+      };
+    },
+    onError: (err, media, context) => {
+      // Roll back on error
+      if (context) {
+        // Restore previous keyframes
+        queryClient.setQueryData(
+          ["frames", context.trackId],
+          context.previousKeyframes
+        );
+        
+        // If we created a temporary track, remove it
+        if (context.trackId.startsWith('temp-track-')) {
+          queryClient.setQueryData(
+            queryKeys.projectTracks(projectId),
+            context.previousTracks
+          );
+        }
+      }
+      
+      console.error('Failed to add media to track:', err);
+    },
+    onSuccess: (data, media, context) => {
+      if (!data || !projectId || !context) return;
+      
+      // Replace temporary keyframe with real one
+      if (context.optimisticKeyframe.id.startsWith('temp-keyframe-')) {
+        queryClient.setQueryData(
+          ["frames", data.trackId],
+          (old: VideoKeyFrame[] = []) => 
+            old.map(kf => 
+              kf.id === context.optimisticKeyframe.id 
+                ? { ...kf, id: data.keyframeId }
+                : kf
+            )
+        );
+      }
+      
+      // Refresh to ensure consistency
       refreshVideoCache(queryClient, projectId);
+    },
+    onSettled: () => {
+      // Always refetch after mutation to ensure consistency
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: ["frames"] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.projectTracks(projectId) });
+      }
     },
   });
 

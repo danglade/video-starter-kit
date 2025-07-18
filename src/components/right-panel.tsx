@@ -56,6 +56,9 @@ import { LoadingIcon } from "./ui/icons";
 import { getMediaMetadata } from "@/lib/ffmpeg";
 import CameraMovement from "./camera-control";
 import VideoFrameSelector from "./video-frame-selector";
+import { CharacterGallery } from "./character-gallery";
+import { useCharacter } from "@/data/queries";
+import { TRAINING_CONFIG } from "@/config/training";
 
 type ModelEndpointPickerProps = {
   mediaType: string;
@@ -105,6 +108,7 @@ export default function RightPanel({
 
   const [tab, setTab] = useState<string>("generation");
   const [assetMediaType, setAssetMediaType] = useState("all");
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const projectId = useProjectId();
   const openGenerateDialog = useVideoProjectStore((s) => s.openGenerateDialog);
   const generateDialogOpen = useVideoProjectStore((s) => s.generateDialogOpen);
@@ -148,6 +152,7 @@ export default function RightPanel({
   const { data: mediaItems = [] } = useProjectMediaItems(projectId);
   const mediaType = useVideoProjectStore((s) => s.generateMediaType);
   const setMediaType = useVideoProjectStore((s) => s.setGenerateMediaType);
+  const { data: selectedCharacter } = useCharacter(selectedCharacterId || '');
 
   const endpoint = useMemo(
     () =>
@@ -158,23 +163,30 @@ export default function RightPanel({
   );
   const handleMediaTypeChange = (mediaType: string) => {
     setMediaType(mediaType as MediaType);
-    const endpoint = AVAILABLE_ENDPOINTS.find(
-      (endpoint) => endpoint.category === mediaType,
-    );
-
-    const initialInput = endpoint?.initialInput || {};
-
-    if (
-      (mediaType === "video" &&
-        endpoint?.endpointId === "fal-ai/hunyuan-video") ||
-      mediaType !== "video"
-    ) {
-      setGenerateData({ image: null, ...initialInput });
+    
+    if (mediaType === "image") {
+      // For images, we don't need to set an endpoint since it's always flux-lora
+      setGenerateData({ image: null });
+      setEndpointId(TRAINING_CONFIG.GENERATION_MODEL);
     } else {
-      setGenerateData({ ...initialInput });
-    }
+      const endpoint = AVAILABLE_ENDPOINTS.find(
+        (endpoint) => endpoint.category === mediaType,
+      );
 
-    setEndpointId(endpoint?.endpointId ?? AVAILABLE_ENDPOINTS[0].endpointId);
+      const initialInput = endpoint?.initialInput || {};
+
+      if (
+        (mediaType === "video" &&
+          endpoint?.endpointId === "fal-ai/hunyuan-video") ||
+        mediaType !== "video"
+      ) {
+        setGenerateData({ image: null, ...initialInput });
+      } else {
+        setGenerateData({ ...initialInput });
+      }
+
+      setEndpointId(endpoint?.endpointId ?? AVAILABLE_ENDPOINTS[0].endpointId);
+    }
   };
   // TODO improve model-specific parameters
   type InputType = {
@@ -196,6 +208,7 @@ export default function RightPanel({
       movement_value: number;
       movement_type: string;
     };
+    loras?: Array<{ path: string; scale?: number }>;
   };
 
   const aspectRatioMap = {
@@ -245,6 +258,11 @@ export default function RightPanel({
     input.images = generateData.images;
   }
 
+  // Add character LoRA if selected and available
+  if (selectedCharacter?.loraUrl && mediaType === "image") {
+    input.loras = [{ path: selectedCharacter.loraUrl, scale: 1.0 }];
+  }
+
   const extraInput =
     endpointId === "fal-ai/f5-tts"
       ? {
@@ -256,12 +274,19 @@ export default function RightPanel({
           remove_silence: true,
         }
       : {};
+
+  // Determine the actual endpoint to use
+  let actualEndpointId = endpointId;
+  if (generateData.image && mediaType === "video") {
+    actualEndpointId = `${endpointId}/image-to-video`;
+  } else if (mediaType === "image") {
+    // Always use the flux-lora endpoint for image generation
+    actualEndpointId = TRAINING_CONFIG.GENERATION_MODEL;
+  }
+
   const createJob = useJobCreator({
     projectId,
-    endpointId:
-      generateData.image && mediaType === "video"
-        ? `${endpointId}/image-to-video`
-        : endpointId,
+    endpointId: actualEndpointId,
     mediaType,
     input: {
       ...(endpoint?.initialInput || {}),
@@ -271,6 +296,16 @@ export default function RightPanel({
   });
 
   const handleOnGenerate = async () => {
+    // Validate character selection for image generation
+    if (mediaType === "image" && !selectedCharacterId) {
+      toast({
+        title: "Character Required",
+        description: "Please select a character to generate images.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     await createJob.mutateAsync({} as any, {
       onSuccess: async () => {
         if (!createJob.isError) {
@@ -445,24 +480,26 @@ export default function RightPanel({
               <span className="text-[10px]">Music</span>
             </Button>
           </div>
-          <div className="flex flex-col gap-2 mt-2 justify-start font-medium text-base">
-            <div className="text-muted-foreground">Using</div>
-            <ModelEndpointPicker
-              mediaType={mediaType}
-              value={endpointId}
-              onValueChange={(endpointId) => {
-                resetGenerateData();
-                setEndpointId(endpointId);
+          {mediaType !== "image" && (
+            <div className="flex flex-col gap-2 mt-2 justify-start font-medium text-base">
+              <div className="text-muted-foreground">Using</div>
+              <ModelEndpointPicker
+                mediaType={mediaType}
+                value={endpointId}
+                onValueChange={(endpointId) => {
+                  resetGenerateData();
+                  setEndpointId(endpointId);
 
-                const endpoint = AVAILABLE_ENDPOINTS.find(
-                  (endpoint) => endpoint.endpointId === endpointId,
-                );
+                  const endpoint = AVAILABLE_ENDPOINTS.find(
+                    (endpoint) => endpoint.endpointId === endpointId,
+                  );
 
-                const initialInput = endpoint?.initialInput || {};
-                setGenerateData({ ...initialInput });
-              }}
-            />
-          </div>
+                  const initialInput = endpoint?.initialInput || {};
+                  setGenerateData({ ...initialInput });
+                }}
+              />
+            </div>
+          )}
         </div>
         <div className="flex flex-col gap-2 relative">
           {endpoint?.inputAsset?.map((asset, index) => (
@@ -610,6 +647,19 @@ export default function RightPanel({
         </div>
         {tab === "generation" && (
           <div className="flex flex-col gap-2 mb-2">
+            {mediaType === "image" && (
+              <>
+                <CharacterGallery
+                  selectedCharacterId={selectedCharacterId}
+                  onSelectCharacter={setSelectedCharacterId}
+                />
+                {!selectedCharacterId && (
+                  <div className="text-sm text-muted-foreground text-center p-4 border border-dashed rounded-md">
+                    Please select a character to generate images
+                  </div>
+                )}
+              </>
+            )}
             {endpoint?.imageForFrame && (
               <VideoFrameSelector
                 mediaItems={mediaItems}
@@ -670,7 +720,7 @@ export default function RightPanel({
             <div className="flex flex-row gap-2">
               <Button
                 className="w-full"
-                disabled={enhance.isPending || createJob.isPending}
+                disabled={enhance.isPending || createJob.isPending || (mediaType === "image" && !selectedCharacterId)}
                 onClick={handleOnGenerate}
               >
                 Generate

@@ -3,6 +3,7 @@ import type {
   VideoKeyFrame,
   VideoProject,
   VideoTrack,
+  Character,
 } from "./schema";
 
 // Helper to get the base URL for API calls
@@ -168,6 +169,55 @@ export const clientDb = {
         method: 'DELETE'
       })
       if (!response.ok) throw new Error('Failed to delete media item')
+      return id
+    }
+  },
+  
+  characters: {
+    async all() {
+      const response = await fetch(`${getBaseUrl()}/api/db/characters`)
+      if (!response.ok) throw new Error('Failed to fetch characters')
+      return response.json()
+    },
+    
+    async byProject(projectId: string) {
+      const response = await fetch(`${getBaseUrl()}/api/db/projects/${projectId}/characters`)
+      if (!response.ok) throw new Error('Failed to fetch project characters')
+      return response.json()
+    },
+    
+    async find(id: string) {
+      const response = await fetch(`${getBaseUrl()}/api/db/characters/${id}`)
+      if (!response.ok) return null
+      return response.json()
+    },
+    
+    async create(character: Omit<Character, "id" | "userId" | "createdAt" | "updatedAt">) {
+      const response = await fetch(`${getBaseUrl()}/api/db/characters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(character)
+      })
+      if (!response.ok) throw new Error('Failed to create character')
+      const { id } = await response.json()
+      return id
+    },
+    
+    async update(id: string, character: Partial<Character>) {
+      const response = await fetch(`${getBaseUrl()}/api/db/characters/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(character)
+      })
+      if (!response.ok) throw new Error('Failed to update character')
+      return id
+    },
+    
+    async delete(id: string) {
+      const response = await fetch(`${getBaseUrl()}/api/db/characters/${id}`, {
+        method: 'DELETE'
+      })
+      if (!response.ok) throw new Error('Failed to delete character')
       return id
     }
   },
