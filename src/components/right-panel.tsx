@@ -243,8 +243,9 @@ export default function RightPanel({
     image_size: imageAspectRatio,
     aspect_ratio: videoAspectRatio,
     seconds_total: generateData.duration ?? undefined,
-    // Kling 1.6 uses "duration" as string ("5" or "10")
-    duration: endpointId === "fal-ai/kling-video/v1.6/pro/image-to-video" 
+    // Kling models use "duration" as string ("5" or "10")
+    duration: (endpointId === "fal-ai/kling-video/v1.6/pro/image-to-video" || 
+               endpointId === "fal-ai/kling-video/v2.1/standard/image-to-video")
       ? String(generateData.duration || 5) 
       : undefined,
     voice:

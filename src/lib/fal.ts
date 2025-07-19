@@ -48,6 +48,19 @@ export const AVAILABLE_ENDPOINTS: ApiInfo[] = [
     },
   },
   {
+    endpointId: "fal-ai/kling-video/v2.1/standard/image-to-video",
+    label: "Kling 2.1 Standard",
+    description: "Cost-efficient endpoint for high-quality image-to-video generation",
+    cost: "",
+    category: "video",
+    inputAsset: ["image"],
+    initialInput: {
+      duration: "5",
+      negative_prompt: "blur, distort, and low quality",
+      cfg_scale: 0.5,
+    },
+  },
+  {
     endpointId: "fal-ai/minimax-music",
     label: "Minimax Music",
     description:
