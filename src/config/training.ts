@@ -39,4 +39,35 @@ export const TRAINING_CONFIG = {
 export function generateTriggerWord(characterName: string): string {
   // Always return the literal string "character_name" as the trigger word
   return "character_name";
-} 
+}
+
+/**
+ * Configuration for image upscaling
+ */
+export const UPSCALING_CONFIG = {
+  // Available upscaling models
+  MODELS: {
+    CREATIVE: 'fal-ai/creative-upscaler',
+    CLARITY: 'fal-ai/clarity-upscaler',
+    AURA_SR: 'fal-ai/aura-sr',
+  },
+  
+  // Default model for upscaling
+  DEFAULT_MODEL: 'fal-ai/aura-sr',
+  
+  // Upscaling factors
+  SCALE_FACTORS: {
+    CREATIVE: [2, 4],
+    CLARITY: [2, 4],
+    AURA_SR: [4],
+  },
+  
+  // Model-specific settings
+  SETTINGS: {
+    CREATIVE: {
+      creativity_min: 0,
+      creativity_max: 1,
+      creativity_default: 0.3,
+    },
+  },
+}; 

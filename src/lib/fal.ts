@@ -185,4 +185,44 @@ export const AVAILABLE_ENDPOINTS: ApiInfo[] = [
     prompt: false,
     inputAsset: ["video"],
   },
+  {
+    endpointId: "fal-ai/creative-upscaler",
+    label: "Creative Upscaler",
+    description:
+      "Upscale images with creative enhancement. Adds details and improves quality while preserving the original style.",
+    cost: "",
+    category: "image",
+    prompt: true, // Optional prompt for creative guidance
+    inputAsset: ["image"],
+    initialInput: {
+      scale: 2, // 2x upscaling by default
+      creativity: 0.3, // Balance between preservation and enhancement
+    },
+  },
+  {
+    endpointId: "fal-ai/clarity-upscaler",
+    label: "Clarity Upscaler",
+    description:
+      "Fast and efficient image upscaling focused on clarity and sharpness. Best for photos and realistic images.",
+    cost: "",
+    category: "image",
+    prompt: false,
+    inputAsset: ["image"],
+    initialInput: {
+      scale: 2, // 2x upscaling
+    },
+  },
+  {
+    endpointId: "fal-ai/aura-sr",
+    label: "Aura SR",
+    description:
+      "State-of-the-art GAN-based single image super-resolution. Excellent for 4x upscaling with natural results.",
+    cost: "",
+    category: "image",
+    prompt: false,
+    inputAsset: ["image"],
+    initialInput: {
+      upscaling_factor: 4, // 4x upscaling
+    },
+  },
 ];

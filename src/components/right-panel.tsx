@@ -48,6 +48,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { Slider } from "./ui/slider";
 import { enhancePrompt } from "@/lib/prompt";
 import { WithTooltip } from "./ui/tooltip";
 import { Label } from "./ui/label";
@@ -90,6 +91,13 @@ function ModelEndpointPicker({
       </SelectContent>
     </Select>
   );
+}
+
+// Helper function to check if current endpoint is an upscaling endpoint
+function isUpscalingEndpoint(endpointId: string): boolean {
+  return endpointId.includes('upscale') || 
+         endpointId.includes('clarity') || 
+         endpointId.includes('aura-sr');
 }
 
 export default function RightPanel({
@@ -165,9 +173,12 @@ export default function RightPanel({
     setMediaType(mediaType as MediaType);
     
     if (mediaType === "image") {
-      // For images, we don't need to set an endpoint since it's always flux-lora
-      setGenerateData({ image: null });
-      setEndpointId(TRAINING_CONFIG.GENERATION_MODEL);
+      // Check if we're already on an upscaling endpoint
+      if (!isUpscalingEndpoint(endpointId)) {
+        // Only set to flux-lora if we're not doing upscaling
+        setGenerateData({ image: null });
+        setEndpointId(TRAINING_CONFIG.GENERATION_MODEL);
+      }
     } else {
       const endpoint = AVAILABLE_ENDPOINTS.find(
         (endpoint) => endpoint.category === mediaType,
@@ -280,24 +291,33 @@ export default function RightPanel({
   if (generateData.image && mediaType === "video") {
     actualEndpointId = `${endpointId}/image-to-video`;
   } else if (mediaType === "image") {
-    // Always use the flux-lora endpoint for image generation
-    actualEndpointId = TRAINING_CONFIG.GENERATION_MODEL;
+    // Check if this is an upscaling endpoint
+    if (!isUpscalingEndpoint(endpointId)) {
+      // Only force flux-lora for regular image generation, not upscaling
+      actualEndpointId = TRAINING_CONFIG.GENERATION_MODEL;
+    }
   }
+
+  const jobInput = {
+    ...(endpoint?.initialInput || {}),
+    ...mapInputKey(input, endpoint?.inputMap || {}),
+    ...extraInput,
+    // Include upscaling-specific parameters
+    ...(generateData.scale && { scale: generateData.scale }),
+    ...(generateData.upscaling_factor && { upscaling_factor: generateData.upscaling_factor }),
+    ...(generateData.creativity && { creativity: generateData.creativity }),
+  };
 
   const createJob = useJobCreator({
     projectId,
     endpointId: actualEndpointId,
     mediaType,
-    input: {
-      ...(endpoint?.initialInput || {}),
-      ...mapInputKey(input, endpoint?.inputMap || {}),
-      ...extraInput,
-    },
+    input: jobInput,
   });
 
   const handleOnGenerate = async () => {
-    // Validate character selection for image generation
-    if (mediaType === "image" && !selectedCharacterId) {
+    // Validate character selection for image generation (but not for upscaling)
+    if (mediaType === "image" && !selectedCharacterId && !isUpscalingEndpoint(endpointId)) {
       toast({
         title: "Character Required",
         description: "Please select a character to generate images.",
@@ -480,22 +500,36 @@ export default function RightPanel({
               <span className="text-[10px]">Music</span>
             </Button>
           </div>
-          {mediaType !== "image" && (
+          {(mediaType !== "image" || isUpscalingEndpoint(endpointId)) && (
             <div className="flex flex-col gap-2 mt-2 justify-start font-medium text-base">
               <div className="text-muted-foreground">Using</div>
               <ModelEndpointPicker
                 mediaType={mediaType}
                 value={endpointId}
-                onValueChange={(endpointId) => {
-                  resetGenerateData();
-                  setEndpointId(endpointId);
-
-                  const endpoint = AVAILABLE_ENDPOINTS.find(
-                    (endpoint) => endpoint.endpointId === endpointId,
+                onValueChange={(newEndpointId) => {
+                  const oldEndpoint = AVAILABLE_ENDPOINTS.find(
+                    (ep) => ep.endpointId === endpointId,
+                  );
+                  const newEndpoint = AVAILABLE_ENDPOINTS.find(
+                    (ep) => ep.endpointId === newEndpointId,
                   );
 
-                  const initialInput = endpoint?.initialInput || {};
-                  setGenerateData({ ...initialInput });
+                  // Check if both old and new endpoints are upscaling endpoints
+                  const bothAreUpscaling = isUpscalingEndpoint(endpointId) && isUpscalingEndpoint(newEndpointId);
+                  
+                  if (bothAreUpscaling) {
+                    // Preserve the image when switching between upscaling models
+                    const currentImage = generateData.image;
+                    const initialInput = newEndpoint?.initialInput || {};
+                    setGenerateData({ ...initialInput, image: currentImage });
+                  } else {
+                    // Reset data when switching to/from non-upscaling endpoints
+                    resetGenerateData();
+                    const initialInput = newEndpoint?.initialInput || {};
+                    setGenerateData({ ...initialInput });
+                  }
+                  
+                  setEndpointId(newEndpointId);
                 }}
               />
             </div>
@@ -647,7 +681,7 @@ export default function RightPanel({
         </div>
         {tab === "generation" && (
           <div className="flex flex-col gap-2 mb-2">
-            {mediaType === "image" && (
+            {mediaType === "image" && !isUpscalingEndpoint(endpointId) && (
               <>
                 <CharacterGallery
                   selectedCharacterId={selectedCharacterId}
@@ -686,6 +720,50 @@ export default function RightPanel({
                 }
               />
             )}
+            {/* Upscaling-specific controls */}
+            {isUpscalingEndpoint(endpointId) && (
+              <div className="space-y-4">
+                {endpointId === 'fal-ai/creative-upscaler' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="creativity">Creativity Level</Label>
+                    <div className="flex items-center gap-2">
+                      <Slider
+                        id="creativity"
+                        min={0}
+                        max={1}
+                        step={0.1}
+                        value={[generateData.creativity || 0.3]}
+                        onValueChange={([value]) => setGenerateData({ creativity: value })}
+                        className="flex-1"
+                      />
+                      <span className="text-sm text-muted-foreground w-10">
+                        {(generateData.creativity || 0.3).toFixed(1)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Higher values add more creative enhancement
+                    </p>
+                  </div>
+                )}
+                {(endpointId === 'fal-ai/creative-upscaler' || endpointId === 'fal-ai/clarity-upscaler') && (
+                  <div className="space-y-2">
+                    <Label htmlFor="scale">Upscaling Factor</Label>
+                    <Select
+                      value={String(generateData.scale || 2)}
+                      onValueChange={(value) => setGenerateData({ scale: parseInt(value) })}
+                    >
+                      <SelectTrigger id="scale">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="2">2x</SelectItem>
+                        <SelectItem value="4">4x</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            )}
             {mediaType === "music" && endpointId === "fal-ai/playht/tts/v3" && (
               <div className="flex-1 flex flex-row gap-2">
                 {mediaType === "music" && (
@@ -720,10 +798,10 @@ export default function RightPanel({
             <div className="flex flex-row gap-2">
               <Button
                 className="w-full"
-                disabled={enhance.isPending || createJob.isPending || (mediaType === "image" && !selectedCharacterId)}
+                disabled={enhance.isPending || createJob.isPending || (mediaType === "image" && !selectedCharacterId && !isUpscalingEndpoint(endpointId))}
                 onClick={handleOnGenerate}
               >
-                Generate
+                {isUpscalingEndpoint(endpointId) ? 'Upscale' : 'Generate'}
               </Button>
             </div>
           </div>

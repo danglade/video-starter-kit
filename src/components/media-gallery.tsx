@@ -38,6 +38,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { db } from "@/data/db";
 import { LoadingIcon } from "./ui/icons";
 import { AVAILABLE_ENDPOINTS } from "@/lib/fal";
+import { UPSCALING_CONFIG } from "@/config/training";
 
 type MediaGallerySheetProps = ComponentProps<typeof Sheet> & {
   selectedMediaId: string;
@@ -143,6 +144,29 @@ export function MediaGallerySheet({
       ...(selectedMedia.input || {}),
       video_url: video,
     });
+    setSelectedMediaId(null);
+    openGenerateDialog();
+  };
+
+  const handleImageUpscaleDialog = () => {
+    const imageUrl = resolveMediaUrl(selectedMedia);
+
+    // Set the data first - use 'image' instead of 'image_url' to match generateData structure
+    setGenerateData({
+      image: imageUrl,
+      // Include default upscaling parameters
+      scale: 2,
+      upscaling_factor: 4,
+    });
+    
+    // Then set media type
+    setGenerateMediaType("image");
+    
+    // Use setTimeout to ensure endpoint is set after media type handler completes
+    setTimeout(() => {
+      setEndpointId(UPSCALING_CONFIG.DEFAULT_MODEL);
+    }, 0);
+    
     setSelectedMediaId(null);
     openGenerateDialog();
   };
@@ -275,14 +299,24 @@ export function MediaGallerySheet({
                 </Button>
               )}
               {selectedMedia?.mediaType === "image" && (
-                <Button
-                  onClick={handleOpenGenerateDialog}
-                  variant="secondary"
-                  disabled={deleteMedia.isPending}
-                >
-                  <FilmIcon className="w-4 h-4 opacity-50" />
-                  Make Video
-                </Button>
+                <>
+                  <Button
+                    onClick={handleImageUpscaleDialog}
+                    variant="secondary"
+                    disabled={deleteMedia.isPending}
+                  >
+                    <ImageUpscale className="w-4 h-4 opacity-50" />
+                    Upscale Image
+                  </Button>
+                  <Button
+                    onClick={handleOpenGenerateDialog}
+                    variant="secondary"
+                    disabled={deleteMedia.isPending}
+                  >
+                    <FilmIcon className="w-4 h-4 opacity-50" />
+                    Make Video
+                  </Button>
+                </>
               )}
               <Button
                 onClick={handleVary}
