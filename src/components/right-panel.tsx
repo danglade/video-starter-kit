@@ -100,6 +100,11 @@ function isUpscalingEndpoint(endpointId: string): boolean {
          endpointId.includes('aura-sr');
 }
 
+// Helper function to check if current endpoint is a Kling model
+function isKlingModel(endpointId: string): boolean {
+  return endpointId.startsWith('fal-ai/kling-video/');
+}
+
 export default function RightPanel({
   onOpenChange,
 }: {
@@ -244,8 +249,7 @@ export default function RightPanel({
     aspect_ratio: videoAspectRatio,
     seconds_total: generateData.duration ?? undefined,
     // Kling models use "duration" as string ("5" or "10")
-    duration: (endpointId === "fal-ai/kling-video/v1.6/pro/image-to-video" || 
-               endpointId === "fal-ai/kling-video/v2.1/standard/image-to-video")
+    duration: isKlingModel(endpointId)
       ? String(generateData.duration || 5) 
       : undefined,
     voice:

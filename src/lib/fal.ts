@@ -61,6 +61,19 @@ export const AVAILABLE_ENDPOINTS: ApiInfo[] = [
     },
   },
   {
+    endpointId: "fal-ai/kling-video/v2.1/pro/image-to-video",
+    label: "Kling 2.1 Pro",
+    description: "Professional-grade videos with enhanced visual fidelity and dynamic motion control",
+    cost: "",
+    category: "video",
+    inputAsset: ["image"],
+    initialInput: {
+      duration: "5",
+      negative_prompt: "blur, distort, and low quality",
+      cfg_scale: 0.5,
+    },
+  },
+  {
     endpointId: "fal-ai/minimax-music",
     label: "Minimax Music",
     description:
