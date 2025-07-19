@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { fal } from "@fal-ai/client";
-import { TRAINING_CONFIG, generateTriggerWord } from "@/config/training";
+import { TRAINING_CONFIG } from "@/config/training";
 
 export async function POST(request: NextRequest) {
   try {
@@ -87,13 +87,10 @@ async function handleLoraTraining(body: any) {
     console.log("Training completed, generating thumbnail for character:", character.id);
     
     try {
-      // Get the trigger word for this character
-      const triggerWord = generateTriggerWord(character.name);
-      
       // Generate a thumbnail for the character using the trained LoRA
       const thumbnailResult = await fal.subscribe(TRAINING_CONFIG.THUMBNAIL.MODEL, {
         input: {
-          prompt: `${triggerWord}, professional portrait photo, high quality, studio lighting, headshot`,
+          prompt: TRAINING_CONFIG.THUMBNAIL.PROMPT_TEMPLATE,
           loras: [
             {
               path: output.diffusers_lora_file.url,

@@ -29,6 +29,7 @@ export const TRAINING_CONFIG = {
     NUM_INFERENCE_STEPS: 28,
     GUIDANCE_SCALE: 3.5,
     OUTPUT_FORMAT: 'jpeg' as const,
+    PROMPT_TEMPLATE: 'character_name, portrait photo, high quality, studio lighting, headshot',
   }
 };
 
