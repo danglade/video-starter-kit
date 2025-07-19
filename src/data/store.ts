@@ -37,6 +37,9 @@ interface VideoProjectProps {
   compareMode: boolean;
   selectedForComparison: string[];
   comparisonDialogOpen: boolean;
+  // Anime production state
+  selectedEpisodeId: string | null;
+  selectedSceneId: string | null;
 }
 
 interface VideoProjectState extends VideoProjectProps {
@@ -60,6 +63,9 @@ interface VideoProjectState extends VideoProjectProps {
   toggleImageForComparison: (mediaId: string) => void;
   clearComparisonSelection: () => void;
   setComparisonDialogOpen: (open: boolean) => void;
+  // Anime production actions
+  setSelectedEpisodeId: (episodeId: string | null) => void;
+  setSelectedSceneId: (sceneId: string | null) => void;
 }
 
 const DEFAULT_PROPS: VideoProjectProps = {
@@ -86,6 +92,9 @@ const DEFAULT_PROPS: VideoProjectProps = {
   compareMode: false,
   selectedForComparison: [],
   comparisonDialogOpen: false,
+  // Anime production defaults
+  selectedEpisodeId: null,
+  selectedSceneId: null,
 };
 
 type VideoProjectStore = ReturnType<typeof createVideoProjectStore>;
@@ -159,6 +168,9 @@ export const createVideoProjectStore = (
     clearComparisonSelection: () => set({ selectedForComparison: [] }),
     setComparisonDialogOpen: (comparisonDialogOpen: boolean) => 
       set({ comparisonDialogOpen }),
+    // Anime production actions
+    setSelectedEpisodeId: (selectedEpisodeId: string | null) => set({ selectedEpisodeId }),
+    setSelectedSceneId: (selectedSceneId: string | null) => set({ selectedSceneId }),
   }));
 };
 

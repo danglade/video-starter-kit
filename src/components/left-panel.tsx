@@ -13,7 +13,6 @@ import {
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import { useState } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -26,7 +25,8 @@ export default function LeftPanel() {
   const projectId = useProjectId();
   const { data: project = PROJECT_PLACEHOLDER } = useProject(projectId);
   const projectUpdate = useProjectUpdater(projectId);
-  const [selectedEpisodeId, setSelectedEpisodeId] = useState<string | undefined>();
+  const selectedEpisodeId = useVideoProjectStore((s) => s.selectedEpisodeId);
+  const setSelectedEpisodeId = useVideoProjectStore((s) => s.setSelectedEpisodeId);
   
   const setProjectDialogOpen = useVideoProjectStore(
     (s) => s.setProjectDialogOpen,
@@ -101,7 +101,7 @@ export default function LeftPanel() {
             setSelectedEpisodeId(episode.id);
             // TODO: Update main view to show episode details
           }}
-          selectedEpisodeId={selectedEpisodeId}
+          selectedEpisodeId={selectedEpisodeId || undefined}
         />
       </div>
     </div>

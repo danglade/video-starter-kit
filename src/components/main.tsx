@@ -21,6 +21,7 @@ import { KeyDialog } from "./key-dialog";
 import { db } from "@/data/db";
 import { ImageComparer } from "./image-comparer";
 import { useProjectMediaItems } from "@/data/queries";
+import { EpisodeTimeline } from "./episode-timeline";
 
 type AppProps = {
   projectId: string;
@@ -110,6 +111,8 @@ export function App({ projectId: initialProjectId }: AppProps) {
     projectStore,
     (s) => s.setCompareMode,
   );
+  const selectedEpisodeId = useStore(projectStore, (s) => s.selectedEpisodeId);
+  const setSelectedSceneId = useStore(projectStore, (s) => s.setSelectedSceneId);
 
   if (isValidating) {
     return (
@@ -128,8 +131,20 @@ export function App({ projectId: initialProjectId }: AppProps) {
             <main className="flex overflow-hidden h-full w-screen">
               <LeftPanel />
               <div className="flex flex-col flex-1">
-                <VideoPreview />
-                <BottomBar />
+                {selectedEpisodeId ? (
+                  <EpisodeTimeline 
+                    episodeId={selectedEpisodeId}
+                    onSceneSelect={(scene) => {
+                      setSelectedSceneId(scene.id);
+                      // TODO: Show scene detail view
+                    }}
+                  />
+                ) : (
+                  <>
+                    <VideoPreview />
+                    <BottomBar />
+                  </>
+                )}
               </div>
             </main>
             <RightPanel />
