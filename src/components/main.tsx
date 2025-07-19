@@ -22,6 +22,7 @@ import { db } from "@/data/db";
 import { ImageComparer } from "./image-comparer";
 import { useProjectMediaItems } from "@/data/queries";
 import { EpisodeTimeline } from "./episode-timeline";
+import { SceneDetail } from "./scene-detail";
 
 type AppProps = {
   projectId: string;
@@ -112,6 +113,8 @@ export function App({ projectId: initialProjectId }: AppProps) {
     (s) => s.setCompareMode,
   );
   const selectedEpisodeId = useStore(projectStore, (s) => s.selectedEpisodeId);
+  const selectedSceneId = useStore(projectStore, (s) => s.selectedSceneId);
+  const setSelectedEpisodeId = useStore(projectStore, (s) => s.setSelectedEpisodeId);
   const setSelectedSceneId = useStore(projectStore, (s) => s.setSelectedSceneId);
 
   if (isValidating) {
@@ -131,12 +134,16 @@ export function App({ projectId: initialProjectId }: AppProps) {
             <main className="flex overflow-hidden h-full w-screen">
               <LeftPanel />
               <div className="flex flex-col flex-1">
-                {selectedEpisodeId ? (
+                {selectedSceneId ? (
+                  <SceneDetail 
+                    sceneId={selectedSceneId}
+                    onBack={() => setSelectedSceneId(null)}
+                  />
+                ) : selectedEpisodeId ? (
                   <EpisodeTimeline 
                     episodeId={selectedEpisodeId}
                     onSceneSelect={(scene) => {
                       setSelectedSceneId(scene.id);
-                      // TODO: Show scene detail view
                     }}
                   />
                 ) : (
