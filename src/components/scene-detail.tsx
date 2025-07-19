@@ -47,6 +47,9 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Slider } from "./ui/slider";
+import { ShotGenerator } from "./shot-generator";
+import { useProjectCharacters } from "@/data/queries";
+import { useProjectId } from "@/data/store";
 
 interface SceneDetailProps {
   sceneId: string;
@@ -88,12 +91,16 @@ export function SceneDetail({ sceneId, onBack }: SceneDetailProps) {
   const [editingShot, setEditingShot] = useState<Shot | null>(null);
   const [selectedShotId, setSelectedShotId] = useState<string | null>(null);
   
+  const projectId = useProjectId();
+  const { data: characters = [] } = useProjectCharacters(projectId);
+  
   // Form state
   const [shotDuration, setShotDuration] = useState(3);
   const [cameraType, setCameraType] = useState<Shot['cameraType']>("medium");
   const [cameraMovement, setCameraMovement] = useState<Shot['cameraMovement']>("static");
   const [shotDescription, setShotDescription] = useState("");
   const [dialogueText, setDialogueText] = useState("");
+  const [selectedCharacterIds, setSelectedCharacterIds] = useState<string[]>([]);
 
   const updateShot = useShotUpdater(editingShot?.id || "", sceneId);
 
@@ -108,6 +115,7 @@ export function SceneDetail({ sceneId, onBack }: SceneDetailProps) {
         cameraMovement,
         description: shotDescription,
         dialogueText: dialogueText || undefined,
+        characterIds: selectedCharacterIds.length > 0 ? selectedCharacterIds : undefined,
         status: "planned",
       },
       {
@@ -129,6 +137,7 @@ export function SceneDetail({ sceneId, onBack }: SceneDetailProps) {
         cameraMovement,
         description: shotDescription,
         dialogueText: dialogueText || undefined,
+        characterIds: selectedCharacterIds.length > 0 ? selectedCharacterIds : undefined,
       },
       {
         onSuccess: () => {
@@ -145,6 +154,7 @@ export function SceneDetail({ sceneId, onBack }: SceneDetailProps) {
     setCameraMovement("static");
     setShotDescription("");
     setDialogueText("");
+    setSelectedCharacterIds([]);
   };
 
   const openEditDialog = (shot: Shot) => {
@@ -154,6 +164,7 @@ export function SceneDetail({ sceneId, onBack }: SceneDetailProps) {
     setCameraMovement(shot.cameraMovement || "static");
     setShotDescription(shot.description || "");
     setDialogueText(shot.dialogueText || "");
+    setSelectedCharacterIds(shot.characterIds || []);
   };
 
   if (!scene) {
@@ -338,18 +349,35 @@ export function SceneDetail({ sceneId, onBack }: SceneDetailProps) {
                   <h4 className="font-medium mb-2">Preview</h4>
                   <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
                     {selectedShot.mediaId ? (
-                      <div>
-                        {/* TODO: Show actual generated video */}
-                        <Film className="h-16 w-16 text-muted-foreground" />
+                      <div className="relative w-full h-full">
+                        <video
+                          src={selectedShot.mediaId}
+                          controls
+                          className="w-full h-full object-contain"
+                          autoPlay
+                          loop
+                        />
+                        <div className="absolute top-2 right-2">
+                          <ShotGenerator 
+                            shot={selectedShot} 
+                            scene={scene}
+                            onGenerated={() => {
+                              // Refresh will happen automatically via React Query
+                            }}
+                          />
+                        </div>
                       </div>
                     ) : (
                       <div className="text-center">
                         <Camera className="h-16 w-16 text-muted-foreground mb-4" />
                         <p className="text-muted-foreground mb-4">Shot not generated yet</p>
-                        <Button>
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Generate Shot
-                        </Button>
+                        <ShotGenerator 
+                          shot={selectedShot} 
+                          scene={scene}
+                          onGenerated={() => {
+                            // Refresh will happen automatically via React Query
+                          }}
+                        />
                       </div>
                     )}
                   </div>
@@ -458,6 +486,38 @@ export function SceneDetail({ sceneId, onBack }: SceneDetailProps) {
                 onChange={(e) => setDialogueText(e.target.value)}
                 rows={2}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="selected-characters">Characters (Optional)</Label>
+              <div className="flex flex-wrap gap-2">
+                {characters.map((character: any) => {
+                  const isSelected = selectedCharacterIds.includes(character.id);
+                  return (
+                    <Badge
+                      key={character.id}
+                      variant={isSelected ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedCharacterIds(prev => 
+                            prev.filter(id => id !== character.id)
+                          );
+                        } else {
+                          setSelectedCharacterIds(prev => [...prev, character.id]);
+                        }
+                      }}
+                    >
+                      {character.name}
+                    </Badge>
+                  );
+                })}
+              </div>
+              {selectedCharacterIds.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {selectedCharacterIds.length} character{selectedCharacterIds.length !== 1 ? 's' : ''} selected
+                </p>
+              )}
             </div>
           </div>
           
