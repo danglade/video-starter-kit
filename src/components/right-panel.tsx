@@ -174,6 +174,15 @@ export default function RightPanel({
       ),
     [endpointId],
   );
+
+  // Fix endpoint when dialog opens with image media type
+  useEffect(() => {
+    if (generateDialogOpen && mediaType === "image" && !isUpscalingEndpoint(endpointId)) {
+      // If we're in image mode but not upscaling, set to flux-lora
+      setEndpointId(TRAINING_CONFIG.GENERATION_MODEL);
+      setGenerateData({ image: null });
+    }
+  }, [generateDialogOpen, mediaType, endpointId]);
   const handleMediaTypeChange = (mediaType: string) => {
     setMediaType(mediaType as MediaType);
     
