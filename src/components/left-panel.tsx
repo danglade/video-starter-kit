@@ -20,13 +20,20 @@ import {
   AccordionTrigger,
 } from "./ui/accordion";
 import { EpisodeList } from "./episode-list";
+import { useProjectCharacters } from "@/data/queries";
+import { Users, Plus } from "lucide-react";
+import { Badge } from "./ui/badge";
+import { useState } from "react";
+import { CharacterDialog } from "./character-dialog";
 
 export default function LeftPanel() {
   const projectId = useProjectId();
   const { data: project = PROJECT_PLACEHOLDER } = useProject(projectId);
+  const { data: characters = [] } = useProjectCharacters(projectId);
   const projectUpdate = useProjectUpdater(projectId);
   const selectedEpisodeId = useVideoProjectStore((s) => s.selectedEpisodeId);
   const setSelectedEpisodeId = useVideoProjectStore((s) => s.setSelectedEpisodeId);
+  const [characterDialogOpen, setCharacterDialogOpen] = useState(false);
   
   const setProjectDialogOpen = useVideoProjectStore(
     (s) => s.setProjectDialogOpen,
@@ -94,16 +101,85 @@ export default function LeftPanel() {
       </div>
       
       {/* Episode List */}
-      <div className="flex-1 overflow-hidden">
-        <EpisodeList
-          projectId={projectId}
-          onEpisodeSelect={(episode) => {
-            setSelectedEpisodeId(episode.id);
-            // TODO: Update main view to show episode details
-          }}
-          selectedEpisodeId={selectedEpisodeId || undefined}
-        />
+      <div className="flex-1 overflow-y-auto">
+        {/* Characters Section */}
+        <div className="p-4 border-b">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Characters
+            </h3>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setCharacterDialogOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {characters.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-xs text-muted-foreground mb-2">
+                Create characters first for consistent shot generation
+              </p>
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => setCharacterDialogOpen(true)}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add Character
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {characters.map((character: any) => (
+                <div
+                  key={character.id}
+                  className="flex flex-col items-center p-2 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+                  onClick={() => setCharacterDialogOpen(true)}
+                >
+                  {character.thumbnailUrl ? (
+                    <img
+                      src={character.thumbnailUrl}
+                      alt={character.name}
+                      className="w-12 h-12 rounded-full object-cover mb-1"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-1">
+                      <Users className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  )}
+                  <span className="text-xs truncate w-full text-center">{character.name}</span>
+                  <Badge 
+                    variant={character.trainingStatus === 'completed' ? 'default' : 'secondary'}
+                    className="text-xs mt-1"
+                  >
+                    {character.trainingStatus}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Episodes Section */}
+        <div className="p-4">
+          <h3 className="text-sm font-semibold mb-3">Episodes</h3>
+          <EpisodeList
+            projectId={projectId}
+            onEpisodeSelect={(episode) => setSelectedEpisodeId(episode.id)}
+            selectedEpisodeId={selectedEpisodeId || undefined}
+          />
+        </div>
       </div>
+      
+      <CharacterDialog
+        open={characterDialogOpen}
+        onOpenChange={setCharacterDialogOpen}
+        projectId={projectId}
+      />
     </div>
   );
 }

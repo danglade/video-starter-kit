@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/data/db'
+import { serverDb } from '@/data/db-server'
 
 export async function GET() {
   try {
@@ -14,7 +14,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const id = await db.episodes.create(body)
+    const id = await serverDb.episodes.create(body)
     return NextResponse.json({ id })
   } catch (error) {
     console.error('Failed to create episode:', error)

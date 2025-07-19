@@ -42,7 +42,7 @@ const statusColors = {
 };
 
 export function EpisodeList({ projectId, onEpisodeSelect, selectedEpisodeId }: EpisodeListProps) {
-  const { data: episodes = [], isLoading } = useProjectEpisodes(projectId);
+  const { data: episodes = [], isLoading, error } = useProjectEpisodes(projectId);
   const createEpisode = useEpisodeCreator(projectId);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newEpisodeTitle, setNewEpisodeTitle] = useState("");

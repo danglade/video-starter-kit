@@ -490,29 +490,40 @@ export function SceneDetail({ sceneId, onBack }: SceneDetailProps) {
 
             <div className="space-y-2">
               <Label htmlFor="selected-characters">Characters (Optional)</Label>
-              <div className="flex flex-wrap gap-2">
-                {characters.map((character: any) => {
-                  const isSelected = selectedCharacterIds.includes(character.id);
-                  return (
-                    <Badge
-                      key={character.id}
-                      variant={isSelected ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => {
-                        if (isSelected) {
-                          setSelectedCharacterIds(prev => 
-                            prev.filter(id => id !== character.id)
-                          );
-                        } else {
-                          setSelectedCharacterIds(prev => [...prev, character.id]);
-                        }
-                      }}
-                    >
-                      {character.name}
-                    </Badge>
-                  );
-                })}
-              </div>
+              {characters.length === 0 ? (
+                <div className="p-3 bg-muted rounded-lg text-center">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    No characters created yet
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Create characters in the left panel for consistent appearance across shots
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {characters.map((character: any) => {
+                    const isSelected = selectedCharacterIds.includes(character.id);
+                    return (
+                      <Badge
+                        key={character.id}
+                        variant={isSelected ? "default" : "outline"}
+                        className="cursor-pointer"
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedCharacterIds(prev => 
+                              prev.filter(id => id !== character.id)
+                            );
+                          } else {
+                            setSelectedCharacterIds(prev => [...prev, character.id]);
+                          }
+                        }}
+                      >
+                        {character.name}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
               {selectedCharacterIds.length > 0 && (
                 <p className="text-xs text-muted-foreground">
                   {selectedCharacterIds.length} character{selectedCharacterIds.length !== 1 ? 's' : ''} selected

@@ -102,7 +102,7 @@ export function ProjectDialog({ onOpenChange, ...props }: ProjectDialogProps) {
 
   return (
     <Dialog {...props} onOpenChange={handleOnOpenChange}>
-      <DialogContent className="flex flex-col max-w-4xl h-fit max-h-[520px] min-h-[380px]">
+      <DialogContent className="flex flex-col max-w-4xl h-fit max-h-[90vh] min-h-[380px]">
         <DialogHeader>
           <div className="flex flex-row gap-2 mb-4">
             <span className="text-lg font-medium">
@@ -114,10 +114,10 @@ export function ProjectDialog({ onOpenChange, ...props }: ProjectDialogProps) {
             Create a new or open an existent project
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-row gap-8 h-full">
+        <div className="flex flex-row gap-8 h-full overflow-hidden">
           {/* New Project Form */}
-          <div className="flex flex-col flex-1 gap-8">
-            <h2 className="text-lg font-semibold flex flex-row gap-2">
+          <div className="flex flex-col flex-1 gap-4 overflow-y-auto pr-2">
+            <h2 className="text-lg font-semibold flex flex-row gap-2 sticky top-0 bg-background pb-2">
               <FileVideoIcon className="w-6 h-6 opacity-50 stroke-1" />
               Create New Project
             </h2>
@@ -271,8 +271,8 @@ export function ProjectDialog({ onOpenChange, ...props }: ProjectDialogProps) {
           </div>
 
           {/* Existing Projects */}
-          <div className="flex flex-col flex-1 gap-8">
-            <h2 className="text-lg font-semibold flex flex-row gap-2">
+          <div className="flex flex-col flex-1 gap-4">
+            <h2 className="text-lg font-semibold flex flex-row gap-2 sticky top-0 bg-background pb-2">
               <FolderOpenIcon className="w-6 h-6 opacity-50 stroke-1" />
               Open Existing Project
             </h2>

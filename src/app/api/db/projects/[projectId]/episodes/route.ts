@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/data/db'
+import { serverDb } from '@/data/db-server'
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { projectId: string } }
 ) {
   try {
-    const episodes = await db.episodes.listByProject(params.id)
+    const episodes = await serverDb.episodes.listByProject(params.projectId)
     return NextResponse.json(episodes)
   } catch (error) {
     console.error('Failed to fetch project episodes:', error)
