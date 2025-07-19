@@ -274,7 +274,7 @@ export default function LeftPanel() {
         </div>
         
         {/* Comparison Mode Controls */}
-        {mediaType === "image" && mediaItems.filter(m => m.mediaType === "image" && m.status === "completed").length >= 2 && (
+        {mediaItems.filter(m => m.mediaType === "image" && m.status === "completed").length >= 2 && (
           <div className="px-4 pb-2">
             {!compareMode ? (
               <Button
