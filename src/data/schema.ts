@@ -1,10 +1,20 @@
 export type AspectRatio = "16:9" | "9:16" | "1:1";
 
+// Visual styles for anime projects
+export type VisualStyle = "shonen_tv" | "ghibli_soft" | "modern_manhwa" | "classic_ova";
+
+export type ProjectCategory = "action" | "romance" | "fantasy" | "scifi" | "slice_of_life" | "comedy" | "drama" | "thriller";
+
 export type VideoProject = {
   id: string;
   title: string;
   description: string;
   aspectRatio: AspectRatio;
+  // New anime-specific fields
+  visualStyle?: VisualStyle;
+  categories?: ProjectCategory[];
+  episodeCount?: number;
+  synopsis?: string;
 };
 
 export const PROJECT_PLACEHOLDER: VideoProject = {
@@ -93,6 +103,50 @@ export type Character = {
   trainingJobId?: string | null;
   trainingImages?: string[] | null;
   trainingError?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+// New types for anime production
+export type Episode = {
+  id: string;
+  projectId: string;
+  episodeNumber: number;
+  title: string;
+  synopsis?: string;
+  duration?: number; // in seconds
+  status: 'planning' | 'storyboard' | 'production' | 'post_production' | 'completed';
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type Scene = {
+  id: string;
+  episodeId: string;
+  sceneNumber: number;
+  title: string;
+  description?: string;
+  duration?: number; // in seconds
+  sceneType: 'action' | 'dialogue' | 'establishing' | 'transition' | 'montage';
+  mood?: 'tense' | 'happy' | 'sad' | 'exciting' | 'calm' | 'mysterious';
+  setting?: string;
+  status: 'planned' | 'generating' | 'generated' | 'approved';
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type Shot = {
+  id: string;
+  sceneId: string;
+  shotNumber: number;
+  duration: number; // in seconds
+  cameraType: 'wide' | 'medium' | 'close_up' | 'extreme_close_up' | 'establishing' | 'pov' | 'over_shoulder';
+  cameraMovement?: 'static' | 'pan' | 'tilt' | 'zoom_in' | 'zoom_out' | 'tracking' | 'dolly';
+  description?: string;
+  mediaId?: string; // Reference to generated video in MediaItem
+  dialogueText?: string;
+  characterIds?: string[]; // Characters appearing in this shot
+  status: 'planned' | 'generating' | 'generated' | 'approved';
   createdAt: Date;
   updatedAt: Date;
 };

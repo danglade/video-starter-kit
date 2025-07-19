@@ -6,6 +6,9 @@ import type {
   VideoProject,
   VideoTrack,
   Character,
+  Episode,
+  Scene,
+  Shot,
 } from "./schema"
 
 // Helper to get the actual database user ID from the temp ID
@@ -37,7 +40,11 @@ export const serverDb = {
         id: project.id,
         title: project.title,
         description: project.description,
-        aspectRatio: project.aspectRatio as VideoProject['aspectRatio']
+        aspectRatio: project.aspectRatio as VideoProject['aspectRatio'],
+        visualStyle: project.visualStyle as VideoProject['visualStyle'],
+        categories: project.categories as VideoProject['categories'],
+        episodeCount: project.episodeCount,
+        synopsis: project.synopsis
       }
     },
     
@@ -52,7 +59,11 @@ export const serverDb = {
         id: p.id,
         title: p.title,
         description: p.description,
-        aspectRatio: p.aspectRatio as VideoProject['aspectRatio']
+        aspectRatio: p.aspectRatio as VideoProject['aspectRatio'],
+        visualStyle: p.visualStyle as VideoProject['visualStyle'],
+        categories: p.categories as VideoProject['categories'],
+        episodeCount: p.episodeCount,
+        synopsis: p.synopsis
       }))
     },
     
@@ -64,7 +75,11 @@ export const serverDb = {
           userId,
           title: project.title,
           description: project.description,
-          aspectRatio: project.aspectRatio
+          aspectRatio: project.aspectRatio,
+          visualStyle: project.visualStyle,
+          categories: project.categories,
+          episodeCount: project.episodeCount,
+          synopsis: project.synopsis
         }
       })
       
@@ -513,6 +528,402 @@ export const serverDb = {
       }
       
       await prisma.character.delete({ where: { id } })
+      return id
+    }
+  },
+  
+  episodes: {
+    async find(id: string): Promise<Episode | null> {
+      const userId = await getUserId()
+      const episode = await prisma.episode.findFirst({
+        where: { 
+          id,
+          project: { userId }
+        }
+      })
+      
+      if (!episode) return null
+      
+      return {
+        id: episode.id,
+        projectId: episode.projectId,
+        episodeNumber: episode.episodeNumber,
+        title: episode.title,
+        synopsis: episode.synopsis,
+        duration: episode.duration,
+        status: episode.status as Episode['status'],
+        createdAt: episode.createdAt,
+        updatedAt: episode.updatedAt
+      }
+    },
+    
+    async listByProject(projectId: string): Promise<Episode[]> {
+      const userId = await getUserId()
+      
+      // Verify project ownership
+      const project = await prisma.project.findFirst({
+        where: { id: projectId, userId }
+      })
+      
+      if (!project) return []
+      
+      const episodes = await prisma.episode.findMany({
+        where: { projectId },
+        orderBy: { episodeNumber: 'asc' }
+      })
+      
+      return episodes.map((e: any) => ({
+        id: e.id,
+        projectId: e.projectId,
+        episodeNumber: e.episodeNumber,
+        title: e.title,
+        synopsis: e.synopsis,
+        duration: e.duration,
+        status: e.status as Episode['status'],
+        createdAt: e.createdAt,
+        updatedAt: e.updatedAt
+      }))
+    },
+    
+    async create(episode: Omit<Episode, "id" | "createdAt" | "updatedAt">) {
+      const userId = await getUserId()
+      
+      // Verify project ownership
+      const project = await prisma.project.findFirst({
+        where: { id: episode.projectId, userId }
+      })
+      
+      if (!project) {
+        throw new Error('Project not found or unauthorized')
+      }
+      
+      const created = await prisma.episode.create({
+        data: episode
+      })
+      
+      return created.id
+    },
+    
+    async update(id: string, episode: Partial<Episode>) {
+      const userId = await getUserId()
+      
+      // Verify ownership through project
+      const existing = await prisma.episode.findFirst({
+        where: { 
+          id,
+          project: { userId }
+        }
+      })
+      
+      if (!existing) {
+        throw new Error('Episode not found or unauthorized')
+      }
+      
+      await prisma.episode.update({
+        where: { id },
+        data: episode
+      })
+      
+      return id
+    },
+    
+    async delete(id: string) {
+      const userId = await getUserId()
+      
+      // Verify ownership through project
+      const episode = await prisma.episode.findFirst({
+        where: { 
+          id,
+          project: { userId }
+        }
+      })
+      
+      if (!episode) {
+        throw new Error('Episode not found or unauthorized')
+      }
+      
+      await prisma.episode.delete({ where: { id } })
+      return id
+    }
+  },
+  
+  scenes: {
+    async find(id: string): Promise<Scene | null> {
+      const userId = await getUserId()
+      const scene = await prisma.scene.findFirst({
+        where: { 
+          id,
+          episode: {
+            project: { userId }
+          }
+        }
+      })
+      
+      if (!scene) return null
+      
+      return {
+        id: scene.id,
+        episodeId: scene.episodeId,
+        sceneNumber: scene.sceneNumber,
+        title: scene.title,
+        description: scene.description,
+        duration: scene.duration,
+        sceneType: scene.sceneType as Scene['sceneType'],
+        mood: scene.mood as Scene['mood'],
+        setting: scene.setting,
+        status: scene.status as Scene['status'],
+        createdAt: scene.createdAt,
+        updatedAt: scene.updatedAt
+      }
+    },
+    
+    async listByEpisode(episodeId: string): Promise<Scene[]> {
+      const userId = await getUserId()
+      
+      // Verify episode ownership through project
+      const episode = await prisma.episode.findFirst({
+        where: { 
+          id: episodeId,
+          project: { userId }
+        }
+      })
+      
+      if (!episode) return []
+      
+      const scenes = await prisma.scene.findMany({
+        where: { episodeId },
+        orderBy: { sceneNumber: 'asc' }
+      })
+      
+      return scenes.map((s: any) => ({
+        id: s.id,
+        episodeId: s.episodeId,
+        sceneNumber: s.sceneNumber,
+        title: s.title,
+        description: s.description,
+        duration: s.duration,
+        sceneType: s.sceneType as Scene['sceneType'],
+        mood: s.mood as Scene['mood'],
+        setting: s.setting,
+        status: s.status as Scene['status'],
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt
+      }))
+    },
+    
+    async create(scene: Omit<Scene, "id" | "createdAt" | "updatedAt">) {
+      const userId = await getUserId()
+      
+      // Verify episode ownership through project
+      const episode = await prisma.episode.findFirst({
+        where: { 
+          id: scene.episodeId,
+          project: { userId }
+        }
+      })
+      
+      if (!episode) {
+        throw new Error('Episode not found or unauthorized')
+      }
+      
+      const created = await prisma.scene.create({
+        data: scene
+      })
+      
+      return created.id
+    },
+    
+    async update(id: string, scene: Partial<Scene>) {
+      const userId = await getUserId()
+      
+      // Verify ownership through episode and project
+      const existing = await prisma.scene.findFirst({
+        where: { 
+          id,
+          episode: {
+            project: { userId }
+          }
+        }
+      })
+      
+      if (!existing) {
+        throw new Error('Scene not found or unauthorized')
+      }
+      
+      await prisma.scene.update({
+        where: { id },
+        data: scene
+      })
+      
+      return id
+    },
+    
+    async delete(id: string) {
+      const userId = await getUserId()
+      
+      // Verify ownership through episode and project
+      const scene = await prisma.scene.findFirst({
+        where: { 
+          id,
+          episode: {
+            project: { userId }
+          }
+        }
+      })
+      
+      if (!scene) {
+        throw new Error('Scene not found or unauthorized')
+      }
+      
+      await prisma.scene.delete({ where: { id } })
+      return id
+    }
+  },
+  
+  shots: {
+    async find(id: string): Promise<Shot | null> {
+      const userId = await getUserId()
+      const shot = await prisma.shot.findFirst({
+        where: { 
+          id,
+          scene: {
+            episode: {
+              project: { userId }
+            }
+          }
+        }
+      })
+      
+      if (!shot) return null
+      
+      return {
+        id: shot.id,
+        sceneId: shot.sceneId,
+        shotNumber: shot.shotNumber,
+        duration: shot.duration,
+        cameraType: shot.cameraType as Shot['cameraType'],
+        cameraMovement: shot.cameraMovement as Shot['cameraMovement'],
+        description: shot.description,
+        mediaId: shot.mediaId,
+        dialogueText: shot.dialogueText,
+        characterIds: shot.characterIds,
+        status: shot.status as Shot['status'],
+        createdAt: shot.createdAt,
+        updatedAt: shot.updatedAt
+      }
+    },
+    
+    async listByScene(sceneId: string): Promise<Shot[]> {
+      const userId = await getUserId()
+      
+      // Verify scene ownership through episode and project
+      const scene = await prisma.scene.findFirst({
+        where: { 
+          id: sceneId,
+          episode: {
+            project: { userId }
+          }
+        }
+      })
+      
+      if (!scene) return []
+      
+      const shots = await prisma.shot.findMany({
+        where: { sceneId },
+        orderBy: { shotNumber: 'asc' }
+      })
+      
+      return shots.map((s: any) => ({
+        id: s.id,
+        sceneId: s.sceneId,
+        shotNumber: s.shotNumber,
+        duration: s.duration,
+        cameraType: s.cameraType as Shot['cameraType'],
+        cameraMovement: s.cameraMovement as Shot['cameraMovement'],
+        description: s.description,
+        mediaId: s.mediaId,
+        dialogueText: s.dialogueText,
+        characterIds: s.characterIds,
+        status: s.status as Shot['status'],
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt
+      }))
+    },
+    
+    async create(shot: Omit<Shot, "id" | "createdAt" | "updatedAt">) {
+      const userId = await getUserId()
+      
+      // Verify scene ownership through episode and project
+      const scene = await prisma.scene.findFirst({
+        where: { 
+          id: shot.sceneId,
+          episode: {
+            project: { userId }
+          }
+        }
+      })
+      
+      if (!scene) {
+        throw new Error('Scene not found or unauthorized')
+      }
+      
+      const created = await prisma.shot.create({
+        data: {
+          ...shot,
+          characterIds: shot.characterIds || []
+        }
+      })
+      
+      return created.id
+    },
+    
+    async update(id: string, shot: Partial<Shot>) {
+      const userId = await getUserId()
+      
+      // Verify ownership through scene, episode and project
+      const existing = await prisma.shot.findFirst({
+        where: { 
+          id,
+          scene: {
+            episode: {
+              project: { userId }
+            }
+          }
+        }
+      })
+      
+      if (!existing) {
+        throw new Error('Shot not found or unauthorized')
+      }
+      
+      await prisma.shot.update({
+        where: { id },
+        data: shot
+      })
+      
+      return id
+    },
+    
+    async delete(id: string) {
+      const userId = await getUserId()
+      
+      // Verify ownership through scene, episode and project
+      const shot = await prisma.shot.findFirst({
+        where: { 
+          id,
+          scene: {
+            episode: {
+              project: { userId }
+            }
+          }
+        }
+      })
+      
+      if (!shot) {
+        throw new Error('Shot not found or unauthorized')
+      }
+      
+      await prisma.shot.delete({ where: { id } })
       return id
     }
   }

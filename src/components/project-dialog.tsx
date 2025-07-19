@@ -2,7 +2,7 @@
 
 import { useProjectCreator } from "@/data/mutations";
 import { queryKeys, useProjects } from "@/data/queries";
-import type { AspectRatio, VideoProject } from "@/data/schema";
+import type { AspectRatio, VideoProject, VisualStyle, ProjectCategory } from "@/data/schema";
 import { useVideoProjectStore } from "@/data/store";
 import { useToast } from "@/hooks/use-toast";
 import { createProjectSuggestion } from "@/lib/project";
@@ -26,6 +26,15 @@ import { Separator } from "./ui/separator";
 import { Skeleton } from "./ui/skeleton";
 import { Textarea } from "./ui/textarea";
 import { WithTooltip } from "./ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Label } from "./ui/label";
+import { Badge } from "./ui/badge";
 
 
 type ProjectDialogProps = {} & Parameters<typeof Dialog>[0];
@@ -34,6 +43,10 @@ export function ProjectDialog({ onOpenChange, ...props }: ProjectDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [aspect, setAspect] = useState<AspectRatio>("16:9");
+  const [visualStyle, setVisualStyle] = useState<VisualStyle>("shonen_tv");
+  const [categories, setCategories] = useState<ProjectCategory[]>([]);
+  const [episodeCount, setEpisodeCount] = useState<number>(12);
+  const [synopsis, setSynopsis] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -78,6 +91,10 @@ export function ProjectDialog({ onOpenChange, ...props }: ProjectDialogProps) {
     if (!isOpen) {
       setTitle("");
       setDescription("");
+      setVisualStyle("shonen_tv");
+      setCategories([]);
+      setEpisodeCount(12);
+      setSynopsis("");
     }
     onOpenChange?.(isOpen);
     setProjectDialogOpen(isOpen);
@@ -140,6 +157,71 @@ export function ProjectDialog({ onOpenChange, ...props }: ProjectDialogProps) {
                   </Button>
                 </div>
               </div>
+              
+              {/* Visual Style Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="visual-style">Visual Style</Label>
+                <Select value={visualStyle} onValueChange={(value) => setVisualStyle(value as VisualStyle)}>
+                  <SelectTrigger id="visual-style">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="shonen_tv">Shonen TV</SelectItem>
+                    <SelectItem value="ghibli_soft">Ghibli Soft</SelectItem>
+                    <SelectItem value="modern_manhwa">Modern Manhwa</SelectItem>
+                    <SelectItem value="classic_ova">Classic OVA</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Episode Count */}
+              <div className="space-y-2">
+                <Label htmlFor="episode-count">Number of Episodes</Label>
+                <Input
+                  id="episode-count"
+                  type="number"
+                  min={1}
+                  max={52}
+                  value={episodeCount}
+                  onChange={(e) => setEpisodeCount(parseInt(e.target.value) || 12)}
+                />
+              </div>
+              
+              {/* Categories */}
+              <div className="space-y-2">
+                <Label>Categories</Label>
+                <div className="flex flex-wrap gap-2">
+                  {(['action', 'romance', 'fantasy', 'scifi', 'slice_of_life', 'comedy', 'drama', 'thriller'] as ProjectCategory[]).map((cat) => (
+                    <Badge
+                      key={cat}
+                      variant={categories.includes(cat) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => {
+                        if (categories.includes(cat)) {
+                          setCategories(categories.filter(c => c !== cat));
+                        } else {
+                          setCategories([...categories, cat]);
+                        }
+                      }}
+                    >
+                      {cat.replace('_', ' ')}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Synopsis */}
+              <div className="space-y-2">
+                <Label htmlFor="synopsis">Synopsis</Label>
+                <Textarea
+                  id="synopsis"
+                  placeholder="Brief overview of your anime series..."
+                  value={synopsis}
+                  onChange={(e) => setSynopsis(e.target.value)}
+                  rows={3}
+                  className="resize-none"
+                />
+              </div>
             </div>
             <div className="flex-1 flex flex-row items-end justify-start gap-2">
               <WithTooltip tooltip="Out of ideas? Generate a new random project.">
@@ -163,6 +245,10 @@ export function ProjectDialog({ onOpenChange, ...props }: ProjectDialogProps) {
                       title,
                       description,
                       aspectRatio: aspect,
+                      visualStyle,
+                      categories,
+                      episodeCount,
+                      synopsis,
                     },
                     {
                       onSuccess: (projectId) => {

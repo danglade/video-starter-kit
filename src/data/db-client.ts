@@ -4,6 +4,9 @@ import type {
   VideoProject,
   VideoTrack,
   Character,
+  Episode,
+  Scene,
+  Shot,
 } from "./schema";
 
 // Helper to get the base URL for API calls
@@ -218,6 +221,144 @@ export const clientDb = {
         method: 'DELETE'
       })
       if (!response.ok) throw new Error('Failed to delete character')
+      return id
+    }
+  },
+  
+  episodes: {
+    async find(id: string): Promise<Episode | null> {
+      const response = await fetch(`${getBaseUrl()}/api/db/episodes/${id}`)
+      if (!response.ok) {
+        if (response.status === 404) return null
+        throw new Error('Failed to fetch episode')
+      }
+      return response.json()
+    },
+    
+    async listByProject(projectId: string): Promise<Episode[]> {
+      const response = await fetch(`${getBaseUrl()}/api/db/projects/${projectId}/episodes`)
+      if (!response.ok) throw new Error('Failed to fetch episodes')
+      return response.json()
+    },
+    
+    async create(episode: Omit<Episode, "id" | "createdAt" | "updatedAt">) {
+      const response = await fetch(`${getBaseUrl()}/api/db/episodes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(episode)
+      })
+      if (!response.ok) throw new Error('Failed to create episode')
+      const { id } = await response.json()
+      return id
+    },
+    
+    async update(id: string, episode: Partial<Episode>) {
+      const response = await fetch(`${getBaseUrl()}/api/db/episodes/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(episode)
+      })
+      if (!response.ok) throw new Error('Failed to update episode')
+      return id
+    },
+    
+    async delete(id: string) {
+      const response = await fetch(`${getBaseUrl()}/api/db/episodes/${id}`, {
+        method: 'DELETE'
+      })
+      if (!response.ok) throw new Error('Failed to delete episode')
+      return id
+    }
+  },
+  
+  scenes: {
+    async find(id: string): Promise<Scene | null> {
+      const response = await fetch(`${getBaseUrl()}/api/db/scenes/${id}`)
+      if (!response.ok) {
+        if (response.status === 404) return null
+        throw new Error('Failed to fetch scene')
+      }
+      return response.json()
+    },
+    
+    async listByEpisode(episodeId: string): Promise<Scene[]> {
+      const response = await fetch(`${getBaseUrl()}/api/db/episodes/${episodeId}/scenes`)
+      if (!response.ok) throw new Error('Failed to fetch scenes')
+      return response.json()
+    },
+    
+    async create(scene: Omit<Scene, "id" | "createdAt" | "updatedAt">) {
+      const response = await fetch(`${getBaseUrl()}/api/db/scenes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(scene)
+      })
+      if (!response.ok) throw new Error('Failed to create scene')
+      const { id } = await response.json()
+      return id
+    },
+    
+    async update(id: string, scene: Partial<Scene>) {
+      const response = await fetch(`${getBaseUrl()}/api/db/scenes/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(scene)
+      })
+      if (!response.ok) throw new Error('Failed to update scene')
+      return id
+    },
+    
+    async delete(id: string) {
+      const response = await fetch(`${getBaseUrl()}/api/db/scenes/${id}`, {
+        method: 'DELETE'
+      })
+      if (!response.ok) throw new Error('Failed to delete scene')
+      return id
+    }
+  },
+  
+  shots: {
+    async find(id: string): Promise<Shot | null> {
+      const response = await fetch(`${getBaseUrl()}/api/db/shots/${id}`)
+      if (!response.ok) {
+        if (response.status === 404) return null
+        throw new Error('Failed to fetch shot')
+      }
+      return response.json()
+    },
+    
+    async listByScene(sceneId: string): Promise<Shot[]> {
+      const response = await fetch(`${getBaseUrl()}/api/db/scenes/${sceneId}/shots`)
+      if (!response.ok) throw new Error('Failed to fetch shots')
+      return response.json()
+    },
+    
+    async create(shot: Omit<Shot, "id" | "createdAt" | "updatedAt">) {
+      const response = await fetch(`${getBaseUrl()}/api/db/shots`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(shot)
+      })
+      if (!response.ok) throw new Error('Failed to create shot')
+      const { id } = await response.json()
+      return id
+    },
+    
+    async update(id: string, shot: Partial<Shot>) {
+      const response = await fetch(`${getBaseUrl()}/api/db/shots/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(shot)
+      })
+      if (!response.ok) throw new Error('Failed to update shot')
+      return id
+    },
+    
+    async delete(id: string) {
+      const response = await fetch(`${getBaseUrl()}/api/db/shots/${id}`, {
+        method: 'DELETE'
+      })
+      if (!response.ok) throw new Error('Failed to delete shot')
       return id
     }
   },
