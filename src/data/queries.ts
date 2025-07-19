@@ -25,6 +25,13 @@ export const queryKeys = {
   characters: ["characters"],
   character: (characterId: string) => ["character", characterId],
   projectCharacters: (projectId: string) => ["characters", projectId],
+  // Anime production keys
+  projectEpisodes: (projectId: string) => ["episodes", projectId],
+  episode: (episodeId: string) => ["episode", episodeId],
+  episodeScenes: (episodeId: string) => ["scenes", episodeId],
+  scene: (sceneId: string) => ["scene", sceneId],
+  sceneShots: (sceneId: string) => ["shots", sceneId],
+  shot: (shotId: string) => ["shot", shotId],
 };
 
 export const refreshVideoCache = async (
@@ -131,5 +138,54 @@ export const useCharacter = (characterId: string) => {
     queryKey: queryKeys.character(characterId),
     enabled: !!characterId,
     queryFn: async () => db.characters.find(characterId),
+  });
+};
+
+// Anime production queries
+export const useProjectEpisodes = (projectId: string) => {
+  return useQuery({
+    queryKey: queryKeys.projectEpisodes(projectId),
+    enabled: !!projectId,
+    queryFn: async () => db.episodes.listByProject(projectId),
+  });
+};
+
+export const useEpisode = (episodeId: string) => {
+  return useQuery({
+    queryKey: queryKeys.episode(episodeId),
+    enabled: !!episodeId,
+    queryFn: async () => db.episodes.find(episodeId),
+  });
+};
+
+export const useEpisodeScenes = (episodeId: string) => {
+  return useQuery({
+    queryKey: queryKeys.episodeScenes(episodeId),
+    enabled: !!episodeId,
+    queryFn: async () => db.scenes.listByEpisode(episodeId),
+  });
+};
+
+export const useScene = (sceneId: string) => {
+  return useQuery({
+    queryKey: queryKeys.scene(sceneId),
+    enabled: !!sceneId,
+    queryFn: async () => db.scenes.find(sceneId),
+  });
+};
+
+export const useSceneShots = (sceneId: string) => {
+  return useQuery({
+    queryKey: queryKeys.sceneShots(sceneId),
+    enabled: !!sceneId,
+    queryFn: async () => db.shots.listByScene(sceneId),
+  });
+};
+
+export const useShot = (shotId: string) => {
+  return useQuery({
+    queryKey: queryKeys.shot(shotId),
+    enabled: !!shotId,
+    queryFn: async () => db.shots.find(shotId),
   });
 };

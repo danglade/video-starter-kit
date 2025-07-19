@@ -1,131 +1,36 @@
 "use client";
 
 import { useProjectUpdater } from "@/data/mutations";
-import { queryKeys, useProject, useProjectMediaItems } from "@/data/queries";
-import { type MediaItem, PROJECT_PLACEHOLDER } from "@/data/schema";
+import { useProject } from "@/data/queries";
+import { PROJECT_PLACEHOLDER } from "@/data/schema";
 import {
-  type MediaType,
   useProjectId,
   useVideoProjectStore,
 } from "@/data/store";
 import {
-  ChevronDown,
-  FilmIcon,
   FolderOpenIcon,
-  GalleryVerticalIcon,
-  ImageIcon,
-  ImagePlusIcon,
-  ListPlusIcon,
-  MicIcon,
-  MusicIcon,
-  LoaderCircleIcon,
-  CloudUploadIcon,
-  SparklesIcon,
-  GitCompareArrows,
 } from "lucide-react";
-import { MediaItemPanel } from "./media-panel";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
 import { useState } from "react";
-import { useUploadThing } from "@/lib/uploadthing";
-import type { ClientUploadedFileData } from "uploadthing/types";
-import { db } from "@/data/db";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "@/hooks/use-toast";
-import { getMediaMetadata } from "@/lib/ffmpeg";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "./ui/accordion";
-import { AVAILABLE_ENDPOINTS } from "@/lib/fal";
+import { EpisodeList } from "./episode-list";
 
 export default function LeftPanel() {
   const projectId = useProjectId();
-  const compareMode = useVideoProjectStore((s) => s.compareMode);
-  const setCompareMode = useVideoProjectStore((s) => s.setCompareMode);
-  const selectedForComparison = useVideoProjectStore((s) => s.selectedForComparison);
-  const clearComparisonSelection = useVideoProjectStore((s) => s.clearComparisonSelection);
-  const setComparisonDialogOpen = useVideoProjectStore((s) => s.setComparisonDialogOpen);
-  const currentEndpointId = useVideoProjectStore((s) => s.endpointId);
-  const setEndpointId = useVideoProjectStore((s) => s.setEndpointId);
   const { data: project = PROJECT_PLACEHOLDER } = useProject(projectId);
   const projectUpdate = useProjectUpdater(projectId);
-  const [mediaType, setMediaType] = useState("all");
-  const queryClient = useQueryClient();
-
-  const { data: mediaItems = [], isLoading } = useProjectMediaItems(projectId);
+  const [selectedEpisodeId, setSelectedEpisodeId] = useState<string | undefined>();
+  
   const setProjectDialogOpen = useVideoProjectStore(
     (s) => s.setProjectDialogOpen,
   );
-  const openGenerateDialog = useVideoProjectStore((s) => s.openGenerateDialog);
-
-  const { startUpload, isUploading } = useUploadThing("fileUploader");
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    try {
-      const uploadedFiles = await startUpload(Array.from(files));
-      if (uploadedFiles) {
-        await handleUploadComplete(uploadedFiles);
-      }
-    } catch (err) {
-      console.warn(`ERROR! ${err}`);
-      toast({
-        title: "Failed to upload file",
-        description: "Please try again",
-      });
-    }
-  };
-
-  const handleUploadComplete = async (
-    files: ClientUploadedFileData<{
-      uploadedBy: string;
-    }>[],
-  ) => {
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const mediaType = file.type.split("/")[0];
-      const outputType = mediaType === "audio" ? "music" : mediaType;
-
-      const data: Omit<MediaItem, "id"> = {
-        projectId,
-        kind: "uploaded",
-        createdAt: Date.now(),
-        mediaType: outputType as MediaType,
-        status: "completed",
-        url: file.url,
-      };
-
-      const mediaId = await db.media.create(data);
-      const media = await db.media.find(mediaId as string);
-
-      if (media) {
-        const mediaMetadata = await getMediaMetadata(media as MediaItem);
-
-        await db.media
-          .update(media.id, {
-            ...media,
-            metadata: mediaMetadata?.media || {},
-          })
-          .finally(() => {
-            queryClient.invalidateQueries({
-              queryKey: queryKeys.projectMediaItems(projectId),
-            });
-          });
-      }
-    }
-  };
 
   return (
     <div className="flex flex-col border-r border-border w-96">
@@ -187,174 +92,17 @@ export default function LeftPanel() {
           </Button>
         </div>
       </div>
-      <div className="flex-1 py-4 flex flex-col gap-4 border-b border-border h-full overflow-hidden relative">
-        <div className="flex flex-row items-center gap-2 px-4">
-          <h2 className="text-sm text-muted-foreground font-semibold flex-1">
-            Gallery
-          </h2>
-          <div className="flex gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="px-2">
-                  <ListPlusIcon className="w-4 h-4 opacity-50" />
-                  <span className="capitalize">{mediaType}</span>
-                  <ChevronDown className="w-4 h-4 opacity-50" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent side="bottom" align="start">
-                <DropdownMenuItem
-                  className="text-sm"
-                  onClick={() => setMediaType("all")}
-                >
-                  <GalleryVerticalIcon className="w-4 h-4 opacity-50" />
-                  All
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-sm"
-                  onClick={() => setMediaType("image")}
-                >
-                  <ImageIcon className="w-4 h-4 opacity-50" />
-                  Image
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-sm"
-                  onClick={() => setMediaType("music")}
-                >
-                  <MusicIcon className="w-4 h-4 opacity-50" />
-                  Music
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-sm"
-                  onClick={() => setMediaType("voiceover")}
-                >
-                  <MicIcon className="w-4 h-4 opacity-50" />
-                  Voiceover
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-sm"
-                  onClick={() => setMediaType("video")}
-                >
-                  <FilmIcon className="w-4 h-4 opacity-50" />
-                  Video
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={isUploading}
-              className="cursor-pointer disabled:cursor-default disabled:opacity-50"
-              asChild
-            >
-              <label htmlFor="fileUploadButton">
-                <Input
-                  id="fileUploadButton"
-                  type="file"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                  multiple={false}
-                  disabled={isUploading}
-                  accept="image/*,audio/*,video/*"
-                />
-                {isUploading ? (
-                  <LoaderCircleIcon className="w-4 h-4 opacity-50 animate-spin" />
-                ) : (
-                  <CloudUploadIcon className="w-4 h-4 opacity-50" />
-                )}
-              </label>
-            </Button>
-          </div>
-          {mediaItems.length > 0 && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                // Reset endpoint if it's an upscaling endpoint
-                if (currentEndpointId.includes('upscale') || 
-                    currentEndpointId.includes('clarity') || 
-                    currentEndpointId.includes('aura-sr')) {
-                  setEndpointId(AVAILABLE_ENDPOINTS[0].endpointId);
-                }
-                openGenerateDialog();
-              }}
-            >
-              <SparklesIcon className="w-4 h-4 opacity-50" />
-              Generate...
-            </Button>
-          )}
-        </div>
-        
-        {/* Comparison Mode Controls */}
-        {mediaItems.filter(m => m.mediaType === "image" && m.status === "completed").length >= 2 && (
-          <div className="px-4 pb-2">
-            {!compareMode ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() => setCompareMode(true)}
-              >
-                <GitCompareArrows className="w-4 h-4 mr-2" />
-                Compare Images
-              </Button>
-            ) : (
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="flex-1"
-                    disabled={selectedForComparison.length !== 2}
-                    onClick={() => setComparisonDialogOpen(true)}
-                  >
-                    Compare ({selectedForComparison.length}/2)
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setCompareMode(false);
-                      clearComparisonSelection();
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-                {selectedForComparison.length < 2 && (
-                  <p className="text-xs text-muted-foreground text-center">
-                    Select 2 images to compare
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-        
-        {!isLoading && mediaItems.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center gap-4 px-4">
-            <p className="text-sm text-center">
-              Create your image, audio and voiceover collection to compose your
-              videos
-            </p>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => openGenerateDialog()}
-            >
-              <ImagePlusIcon className="w-4 h-4 opacity-50" />
-              Generate...
-            </Button>
-          </div>
-        )}
-
-        {mediaItems.length > 0 && (
-          <MediaItemPanel
-            data={mediaItems}
-            mediaType={mediaType}
-            className="overflow-y-auto"
-          />
-        )}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background to-transparent via-background via-60% h-8 pointer-events-none" />
+      
+      {/* Episode List */}
+      <div className="flex-1 overflow-hidden">
+        <EpisodeList
+          projectId={projectId}
+          onEpisodeSelect={(episode) => {
+            setSelectedEpisodeId(episode.id);
+            // TODO: Update main view to show episode details
+          }}
+          selectedEpisodeId={selectedEpisodeId}
+        />
       </div>
     </div>
   );
