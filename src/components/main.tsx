@@ -19,6 +19,8 @@ import { ExportDialog } from "./export-dialog";
 import LeftPanel from "./left-panel";
 import { KeyDialog } from "./key-dialog";
 import { db } from "@/data/db";
+import { ImageComparer } from "./image-comparer";
+import { useProjectMediaItems } from "@/data/queries";
 
 type AppProps = {
   projectId: string;
@@ -88,6 +90,26 @@ export function App({ projectId: initialProjectId }: AppProps) {
     projectStore,
     (s) => s.setExportDialogOpen,
   );
+  const comparisonDialogOpen = useStore(
+    projectStore,
+    (s) => s.comparisonDialogOpen,
+  );
+  const setComparisonDialogOpen = useStore(
+    projectStore,
+    (s) => s.setComparisonDialogOpen,
+  );
+  const selectedForComparison = useStore(
+    projectStore,
+    (s) => s.selectedForComparison,
+  );
+  const clearComparisonSelection = useStore(
+    projectStore,
+    (s) => s.clearComparisonSelection,
+  );
+  const setCompareMode = useStore(
+    projectStore,
+    (s) => s.setCompareMode,
+  );
 
   if (isValidating) {
     return (
@@ -127,8 +149,60 @@ export function App({ projectId: initialProjectId }: AppProps) {
             onOpenChange={handleOnSheetOpenChange}
             selectedMediaId={selectedMediaId ?? ""}
           />
+          <ImageComparerWrapper
+            projectStore={projectStore}
+            projectId={validatedProjectId}
+          />
         </VideoProjectStoreContext.Provider>
       </QueryClientProvider>
     </ToastProvider>
+  );
+}
+
+// Wrapper component to handle media items query
+function ImageComparerWrapper({ projectStore, projectId }: { 
+  projectStore: ReturnType<typeof createVideoProjectStore>; 
+  projectId: string;
+}) {
+  const { data: mediaItems = [] } = useProjectMediaItems(projectId);
+  const comparisonDialogOpen = useStore(
+    projectStore,
+    (s) => s.comparisonDialogOpen,
+  );
+  const setComparisonDialogOpen = useStore(
+    projectStore,
+    (s) => s.setComparisonDialogOpen,
+  );
+  const selectedForComparison = useStore(
+    projectStore,
+    (s) => s.selectedForComparison,
+  );
+  const clearComparisonSelection = useStore(
+    projectStore,
+    (s) => s.clearComparisonSelection,
+  );
+  const setCompareMode = useStore(
+    projectStore,
+    (s) => s.setCompareMode,
+  );
+
+  const leftImage = mediaItems.find(item => item.id === selectedForComparison[0]);
+  const rightImage = mediaItems.find(item => item.id === selectedForComparison[1]);
+
+  if (!leftImage || !rightImage || !comparisonDialogOpen) return null;
+
+  return (
+    <ImageComparer
+      leftImage={leftImage}
+      rightImage={rightImage}
+      open={comparisonDialogOpen}
+      onOpenChange={(open) => {
+        setComparisonDialogOpen(open);
+        if (!open) {
+          clearComparisonSelection();
+          setCompareMode(false);
+        }
+      }}
+    />
   );
 }

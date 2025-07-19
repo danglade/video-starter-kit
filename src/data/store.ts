@@ -33,6 +33,10 @@ interface VideoProjectProps {
   generateData: GenerateData;
   exportDialogOpen: boolean;
   endpointId: string;
+  // Image comparison state
+  compareMode: boolean;
+  selectedForComparison: string[];
+  comparisonDialogOpen: boolean;
 }
 
 interface VideoProjectState extends VideoProjectProps {
@@ -51,6 +55,11 @@ interface VideoProjectState extends VideoProjectProps {
   setExportDialogOpen: (open: boolean) => void;
   setEndpointId: (endpointId: string) => void;
   onGenerate: () => void;
+  // Image comparison actions
+  setCompareMode: (enabled: boolean) => void;
+  toggleImageForComparison: (mediaId: string) => void;
+  clearComparisonSelection: () => void;
+  setComparisonDialogOpen: (open: boolean) => void;
 }
 
 const DEFAULT_PROPS: VideoProjectProps = {
@@ -73,6 +82,10 @@ const DEFAULT_PROPS: VideoProjectProps = {
     audio_url: null,
   },
   exportDialogOpen: false,
+  // Image comparison defaults
+  compareMode: false,
+  selectedForComparison: [],
+  comparisonDialogOpen: false,
 };
 
 type VideoProjectStore = ReturnType<typeof createVideoProjectStore>;
@@ -132,6 +145,20 @@ export const createVideoProjectStore = (
     },
     setExportDialogOpen: (exportDialogOpen: boolean) =>
       set({ exportDialogOpen }),
+    // Image comparison actions
+    setCompareMode: (compareMode: boolean) => 
+      set({ compareMode, selectedForComparison: compareMode ? [] : state().selectedForComparison }),
+    toggleImageForComparison: (mediaId: string) => {
+      const selected = state().selectedForComparison;
+      if (selected.includes(mediaId)) {
+        set({ selectedForComparison: selected.filter(id => id !== mediaId) });
+      } else if (selected.length < 2) {
+        set({ selectedForComparison: [...selected, mediaId] });
+      }
+    },
+    clearComparisonSelection: () => set({ selectedForComparison: [] }),
+    setComparisonDialogOpen: (comparisonDialogOpen: boolean) => 
+      set({ comparisonDialogOpen }),
   }));
 };
 

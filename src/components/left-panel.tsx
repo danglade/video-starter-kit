@@ -21,6 +21,7 @@ import {
   LoaderCircleIcon,
   CloudUploadIcon,
   SparklesIcon,
+  GitCompareArrows,
 } from "lucide-react";
 import { MediaItemPanel } from "./media-panel";
 import { Button } from "./ui/button";
@@ -48,6 +49,11 @@ import {
 
 export default function LeftPanel() {
   const projectId = useProjectId();
+  const compareMode = useVideoProjectStore((s) => s.compareMode);
+  const setCompareMode = useVideoProjectStore((s) => s.setCompareMode);
+  const selectedForComparison = useVideoProjectStore((s) => s.selectedForComparison);
+  const clearComparisonSelection = useVideoProjectStore((s) => s.clearComparisonSelection);
+  const setComparisonDialogOpen = useVideoProjectStore((s) => s.setComparisonDialogOpen);
   const { data: project = PROJECT_PLACEHOLDER } = useProject(projectId);
   const projectUpdate = useProjectUpdater(projectId);
   const [mediaType, setMediaType] = useState("all");
@@ -266,6 +272,53 @@ export default function LeftPanel() {
             </Button>
           )}
         </div>
+        
+        {/* Comparison Mode Controls */}
+        {mediaType === "image" && mediaItems.filter(m => m.mediaType === "image" && m.status === "completed").length >= 2 && (
+          <div className="px-4 pb-2">
+            {!compareMode ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => setCompareMode(true)}
+              >
+                <GitCompareArrows className="w-4 h-4 mr-2" />
+                Compare Images
+              </Button>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="flex-1"
+                    disabled={selectedForComparison.length !== 2}
+                    onClick={() => setComparisonDialogOpen(true)}
+                  >
+                    Compare ({selectedForComparison.length}/2)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCompareMode(false);
+                      clearComparisonSelection();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+                {selectedForComparison.length < 2 && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Select 2 images to compare
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+        
         {!isLoading && mediaItems.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center gap-4 px-4">
             <p className="text-sm text-center">

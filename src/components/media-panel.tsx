@@ -14,6 +14,7 @@ import {
   MicIcon,
   MusicIcon,
   VideoIcon,
+  Check,
 } from "lucide-react";
 import {
   type DragEventHandler,
@@ -39,6 +40,10 @@ export function MediaItemRow({
   draggable = true,
   ...props
 }: MediaItemRowProps) {
+  const compareMode = useVideoProjectStore((s) => s.compareMode);
+  const selectedForComparison = useVideoProjectStore((s) => s.selectedForComparison);
+  const toggleImageForComparison = useVideoProjectStore((s) => s.toggleImageForComparison);
+  const isSelected = selectedForComparison.includes(data.id);
   const isDone = data.status === "completed" || data.status === "failed";
   const queryClient = useQueryClient();
   const projectId = useProjectId();
@@ -131,17 +136,22 @@ export function MediaItemRow({
     <div
       className={cn(
         "flex items-start space-x-2 py-2 w-full px-4 hover:bg-accent transition-all",
+        compareMode && isSelected && "bg-accent/50",
         className,
       )}
       {...props}
       onClick={(e) => {
         e.stopPropagation();
-        onOpen(data);
+        if (compareMode && data.mediaType === "image" && data.status === "completed") {
+          toggleImageForComparison(data.id);
+        } else {
+          onOpen(data);
+        }
       }}
-      draggable={draggable && data.status === "completed"}
+      draggable={draggable && data.status === "completed" && !compareMode}
       onDragStart={handleOnDragStart}
     >
-      {!!draggable && (
+      {!!draggable && !compareMode && (
         <div
           className={cn(
             "flex items-center h-full cursor-grab text-muted-foreground",
@@ -151,6 +161,16 @@ export function MediaItemRow({
           )}
         >
           <GripVerticalIcon className="w-4 h-4" />
+        </div>
+      )}
+      {compareMode && data.mediaType === "image" && data.status === "completed" && (
+        <div className="flex items-center h-full">
+          <div className={cn(
+            "w-5 h-5 rounded border-2 flex items-center justify-center",
+            isSelected ? "bg-primary border-primary" : "border-muted-foreground"
+          )}>
+            {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
+          </div>
         </div>
       )}
       <div className="w-16 h-16 aspect-square relative rounded overflow-hidden border border-transparent hover:border-accent bg-accent transition-all">
