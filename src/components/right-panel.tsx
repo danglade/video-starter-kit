@@ -213,7 +213,7 @@ export default function RightPanel({
     image_size?: { width: number; height: number } | string;
     aspect_ratio?: string;
     seconds_total?: number;
-    duration?: string; // For Kling 1.6
+    duration?: string; // For Kling and Seedance models
     voice?: string;
     input?: string;
     reference_audio_url?: File | string | null;
@@ -226,6 +226,11 @@ export default function RightPanel({
       movement_type: string;
     };
     loras?: Array<{ path: string; scale?: number }>;
+    // Seedance specific
+    resolution?: string;
+    camera_fixed?: boolean;
+    seed?: number;
+    end_image_url?: File | string | null;
   };
 
   const aspectRatioMap = {
@@ -248,8 +253,8 @@ export default function RightPanel({
     image_size: imageAspectRatio,
     aspect_ratio: videoAspectRatio,
     seconds_total: generateData.duration ?? undefined,
-    // Kling models use "duration" as string ("5" or "10")
-    duration: isKlingModel(endpointId)
+    // Kling and Seedance models use "duration" as string ("5" or "10")
+    duration: (isKlingModel(endpointId) || endpointId === "fal-ai/bytedance/seedance/v1/lite/image-to-video")
       ? String(generateData.duration || 5) 
       : undefined,
     voice:
@@ -282,6 +287,14 @@ export default function RightPanel({
   // Add character LoRA if selected and available
   if (selectedCharacter?.loraUrl && mediaType === "image") {
     input.loras = [{ path: selectedCharacter.loraUrl, scale: 1.0 }];
+  }
+
+  // Add Seedance-specific parameters
+  if (endpointId === "fal-ai/bytedance/seedance/v1/lite/image-to-video") {
+    if (generateData.resolution) input.resolution = generateData.resolution;
+    if (generateData.camera_fixed !== undefined) input.camera_fixed = generateData.camera_fixed;
+    if (generateData.seed) input.seed = generateData.seed;
+    if (generateData.end_image_url) input.end_image_url = generateData.end_image_url;
   }
 
   const extraInput =
@@ -727,6 +740,42 @@ export default function RightPanel({
                   })
                 }
               />
+            )}
+            {/* Seedance-specific controls */}
+            {endpointId === "fal-ai/bytedance/seedance/v1/lite/image-to-video" && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="resolution">Resolution</Label>
+                  <Select
+                    value={generateData.resolution || "720p"}
+                    onValueChange={(value) => setGenerateData({ resolution: value })}
+                  >
+                    <SelectTrigger id="resolution">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="480p">480p (Faster)</SelectItem>
+                      <SelectItem value="720p">720p (Default)</SelectItem>
+                      <SelectItem value="1080p">1080p (Higher Quality)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="camera-fixed">Fixed Camera</Label>
+                    <Button
+                      variant={generateData.camera_fixed ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setGenerateData({ camera_fixed: !generateData.camera_fixed })}
+                    >
+                      {generateData.camera_fixed ? "Fixed" : "Moving"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Keep camera position fixed throughout the video
+                  </p>
+                </div>
+              </div>
             )}
             {/* Upscaling-specific controls */}
             {isUpscalingEndpoint(endpointId) && (

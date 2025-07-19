@@ -74,6 +74,19 @@ export const AVAILABLE_ENDPOINTS: ApiInfo[] = [
     },
   },
   {
+    endpointId: "fal-ai/bytedance/seedance/v1/lite/image-to-video",
+    label: "Seedance 1.0 Lite",
+    description: "Fast video generation with resolution options and camera control",
+    cost: "",
+    category: "video",
+    inputAsset: ["image"],
+    initialInput: {
+      duration: "5",
+      resolution: "720p",
+      camera_fixed: false,
+    },
+  },
+  {
     endpointId: "fal-ai/minimax-music",
     label: "Minimax Music",
     description:
