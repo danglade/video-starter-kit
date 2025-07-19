@@ -208,6 +208,7 @@ export default function RightPanel({
     image_size?: { width: number; height: number } | string;
     aspect_ratio?: string;
     seconds_total?: number;
+    duration?: string; // For Kling 1.6
     voice?: string;
     input?: string;
     reference_audio_url?: File | string | null;
@@ -242,6 +243,10 @@ export default function RightPanel({
     image_size: imageAspectRatio,
     aspect_ratio: videoAspectRatio,
     seconds_total: generateData.duration ?? undefined,
+    // Kling 1.6 uses "duration" as string ("5" or "10")
+    duration: endpointId === "fal-ai/kling-video/v1.6/pro/image-to-video" 
+      ? String(generateData.duration || 5) 
+      : undefined,
     voice:
       endpointId === "fal-ai/playht/tts/v3" ? generateData.voice : undefined,
     input:
@@ -288,9 +293,7 @@ export default function RightPanel({
 
   // Determine the actual endpoint to use
   let actualEndpointId = endpointId;
-  if (generateData.image && mediaType === "video") {
-    actualEndpointId = `${endpointId}/image-to-video`;
-  } else if (mediaType === "image") {
+  if (mediaType === "image") {
     // Check if this is an upscaling endpoint
     if (!isUpscalingEndpoint(endpointId)) {
       // Only force flux-lora for regular image generation, not upscaling

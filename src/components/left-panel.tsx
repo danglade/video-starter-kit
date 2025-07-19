@@ -46,6 +46,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "./ui/accordion";
+import { AVAILABLE_ENDPOINTS } from "@/lib/fal";
 
 export default function LeftPanel() {
   const projectId = useProjectId();
@@ -54,6 +55,8 @@ export default function LeftPanel() {
   const selectedForComparison = useVideoProjectStore((s) => s.selectedForComparison);
   const clearComparisonSelection = useVideoProjectStore((s) => s.clearComparisonSelection);
   const setComparisonDialogOpen = useVideoProjectStore((s) => s.setComparisonDialogOpen);
+  const currentEndpointId = useVideoProjectStore((s) => s.endpointId);
+  const setEndpointId = useVideoProjectStore((s) => s.setEndpointId);
   const { data: project = PROJECT_PLACEHOLDER } = useProject(projectId);
   const projectUpdate = useProjectUpdater(projectId);
   const [mediaType, setMediaType] = useState("all");
@@ -265,7 +268,15 @@ export default function LeftPanel() {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => openGenerateDialog()}
+              onClick={() => {
+                // Reset endpoint if it's an upscaling endpoint
+                if (currentEndpointId.includes('upscale') || 
+                    currentEndpointId.includes('clarity') || 
+                    currentEndpointId.includes('aura-sr')) {
+                  setEndpointId(AVAILABLE_ENDPOINTS[0].endpointId);
+                }
+                openGenerateDialog();
+              }}
             >
               <SparklesIcon className="w-4 h-4 opacity-50" />
               Generate...

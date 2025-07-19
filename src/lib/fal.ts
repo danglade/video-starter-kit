@@ -34,44 +34,18 @@ export type ApiInfo = {
 export const AVAILABLE_ENDPOINTS: ApiInfo[] = [
   // Image generation endpoints removed - images are now generated using characters only
   {
-    endpointId: "fal-ai/minimax/video-01-live",
-    label: "Minimax Video 01 Live",
-    description: "High quality video, realistic motion and physics",
+    endpointId: "fal-ai/kling-video/v1.6/pro/image-to-video",
+    label: "Kling 1.6 Pro",
+    description: "Generate video clips from your images using Kling 1.6 (pro)",
     cost: "",
     category: "video",
     inputAsset: ["image"],
-  },
-  {
-    endpointId: "fal-ai/hunyuan-video",
-    label: "Hunyuan",
-    description: "High visual quality, motion diversity and text alignment",
-    cost: "",
-    category: "video",
-  },
-  {
-    endpointId: "fal-ai/kling-video/v1.5/pro",
-    label: "Kling 1.5 Pro",
-    description: "High quality video",
-    cost: "",
-    category: "video",
-    inputAsset: ["image"],
-  },
-  {
-    endpointId: "fal-ai/kling-video/v1/standard/text-to-video",
-    label: "Kling 1.0 Standard",
-    description: "High quality video",
-    cost: "",
-    category: "video",
-    inputAsset: [],
-    cameraControl: true,
-  },
-  {
-    endpointId: "fal-ai/luma-dream-machine",
-    label: "Luma Dream Machine 1.5",
-    description: "High quality video",
-    cost: "",
-    category: "video",
-    inputAsset: ["image"],
+    initialInput: {
+      duration: "5",
+      aspect_ratio: "16:9",
+      negative_prompt: "blur, distort, and low quality",
+      cfg_scale: 0.5,
+    },
   },
   {
     endpointId: "fal-ai/minimax-music",
@@ -86,24 +60,6 @@ export const AVAILABLE_ENDPOINTS: ApiInfo[] = [
         key: "reference_audio_url",
       },
     ],
-  },
-  {
-    endpointId: "fal-ai/mmaudio-v2",
-    label: "MMAudio V2",
-    description:
-      "MMAudio generates synchronized audio given video and/or text inputs. It can be combined with video models to get videos with audio.",
-    cost: "",
-    inputAsset: ["video"],
-    category: "video",
-  },
-  {
-    endpointId: "fal-ai/sync-lipsync",
-    label: "sync.so -- lipsync 1.8.0",
-    description:
-      "Generate realistic lipsync animations from audio using advanced algorithms for high-quality synchronization.",
-    cost: "",
-    inputAsset: ["video", "audio"],
-    category: "video",
   },
   {
     endpointId: "fal-ai/stable-audio",
@@ -158,22 +114,6 @@ export const AVAILABLE_ENDPOINTS: ApiInfo[] = [
       model_type: "F5-TTS",
       remove_silence: true,
     },
-  },
-  {
-    endpointId: "fal-ai/veo2",
-    label: "Veo 2",
-    description:
-      "Veo creates videos with realistic motion and high quality output, up to 4K.",
-    cost: "",
-    category: "video",
-  },
-  {
-    endpointId: "fal-ai/ltx-video-v095/multiconditioning",
-    label: "LTX Video v0.95 Multiconditioning",
-    description: "Generate videos from prompts,images using LTX Video-0.9.5",
-    cost: "",
-    imageForFrame: true,
-    category: "video",
   },
   {
     endpointId: "fal-ai/topaz/upscale/video",
